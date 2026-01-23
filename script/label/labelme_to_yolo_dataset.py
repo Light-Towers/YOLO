@@ -3,6 +3,79 @@ import os
 import glob
 import shutil
 import random
+import cv2
+import numpy as np
+from pathlib import Path
+from collections import Counter
+
+def batch_refine_labelme_json(folder_path):
+    # 支持的后缀名
+    exts = ['.json']
+    
+    # 统计处理数量
+    count = 0
+    
+    # 遍历文件夹
+    for file_name in os.listdir(folder_path):
+        if Path(file_name).suffix.lower() in exts:
+            json_path = os.path.join(folder_path, file_name)
+            
+            try:
+                # 1. 读取原始 JSON
+                with open(json_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                
+                modified = False
+                for shape in data['shapes']:
+                    # 仅处理点数大于 2 的多边形 (手绘标注通常是 polygon)
+                    if shape['shape_type'] == 'polygon' and len(shape['points']) > 2:
+                        # 2. 转换为 numpy 格式供 OpenCV 计算
+                        pts = np.array(shape['points'], dtype=np.float32)
+                        
+                        # 3. 计算最小外接矩形 (核心：支持任意角度倾斜)
+                        # 返回值 rect: ((中心x, 中心y), (宽, 高), 旋转角度)
+                        rect = cv2.minAreaRect(pts)
+                        
+                        # 4. 获取矩形的 4 个顶点坐标
+                        box = cv2.boxPoints(rect)
+                        
+                        # 5. 更新数据 (将 4 个精准顶点回写)
+                        shape['points'] = box.tolist()
+                        modified = True
+                
+                # 6. 如果有改动，直接覆盖原文件
+                if modified:
+                    with open(json_path, 'w', encoding='utf-8') as f:
+                        json.dump(data, f, ensure_ascii=False, indent=2)
+                    print(f"已修正并覆盖: {file_name}")
+                    count += 1
+                    
+            except Exception as e:
+                print(f"处理文件 {file_name} 时出错: {e}")
+
+    print(f"\n处理完成！共修正了 {count} 个文件。")
+
+
+
+def get_consistent_angle(shapes):
+    """计算图中所有展位的众数角度，保证连排展位平行"""
+    angles = []
+    for shape in shapes:
+        if shape['shape_type'] == 'polygon' and len(shape['points']) > 2:
+            pts = np.array(shape['points'], dtype=np.float32)
+            rect = cv2.minAreaRect(pts)
+            angle = rect[2]
+            # 归一化角度，处理 OpenCV 角度范围问题
+            if rect[1][0] < rect[1][1]:
+                angle = angle + 90
+            angles.append(round(angle, 1)) # 保留一位小数求众数
+    
+    if not angles:
+        return 0
+    # 返回出现次数最多的角度
+    return Counter(angles).most_common(1)[0][0]
+
+
 
 # --- 1. 基础工具逻辑：负责文件夹 ---
 def prepare_structure(root_path):
@@ -84,8 +157,11 @@ def start_conversion(input_dir, output_root, class_list, ratio=0.8):
 
 # --- 运行处 ---
 if __name__ == "__main__":
+    input_dir = "D:/0-mingyang/img_handle/YOLO_Train/labelme_labels" 
+    batch_refine_labelme_json(input_dir)
+
     start_conversion(
-        input_dir="D:/0-mingyang/img_handle/YOLO_Train/labelme_labels",
+        input_dir = input_dir,
         output_root="D:/0-mingyang/img_handle/YOLO_Train/booth_seg",
         class_list=["booth"]
     )
