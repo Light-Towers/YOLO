@@ -24,3 +24,7 @@ pip-wheel-metadata/
 # 例如 Mac 的 .DS_Store， Windows 的 Thumbs.db
 .DS_Store
 Thumbs.db
+
+
+models/
+yolo*.pt
