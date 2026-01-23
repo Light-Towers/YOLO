@@ -6,6 +6,10 @@ import os
 
 # 定义一个基础目录
 project_dir = '/home/aistudio/YOLO/'
+
+# 指定你希望统一存放基础模型（如 yolo26n.pt）的目录
+os.environ['YOLO_ASSETS'] = project_dir + 'models/'
+
 train_output_path = project_dir + 'models/train/'
 # 为本次训练指定一个名称，训练文件会保存在以该名称命名的子文件夹中
 exp_name = 'booth_seg_v1'

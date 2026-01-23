@@ -25,7 +25,7 @@ class BoothSegmentationPredictor:
         # 设置默认模型路径（基于项目结构）
         if model_path is None:
             # 默认使用最近训练的模型
-            model_path = self.project_root / "models" / "train" / "booth_seg_v12" / "weights" / "best.pt"
+            model_path = self.project_root / "models" / "train" / "booth_seg_v17" / "weights" / "best.pt"
         else:
             # 如果提供的是相对路径，转换为绝对路径
             model_path = Path(model_path)
@@ -78,7 +78,7 @@ class BoothSegmentationPredictor:
         # 设置默认图像路径
         if source_image is None:
             # 默认使用测试图像
-            source_image = self.project_root / "images" / "2024年展位图-test.png"
+            source_image = self.project_root / "images" / "2024年展位图_压缩.jpg"
         else:
             # 如果提供的是相对路径，转换为绝对路径
             source_image = Path(source_image)

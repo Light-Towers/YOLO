@@ -6,7 +6,7 @@ import os
 # yolov8x-worldv2.pt  加载 YOLO-World 模型（推荐使用 v8s 或 v8m，权衡速度与精度）
 
 # model_path="/workspace/models/yolo11/yolo11n.pt"
-model_path="/home/aistudio/YOLO/models/train/booth_seg_v12/weights/best.pt"
+model_path="/home/aistudio/YOLO/models/train/booth_seg_v17/weights/best.pt"
 
 model = YOLO(model_path)
 
@@ -15,7 +15,7 @@ model = YOLO(model_path)
 # source_image = "/workspace/image/2025年畜牧-展位分布图-1105-01.png"
 # source_image = "/workspace/image/第十一届世界猪业博览会.jpeg"
 source_image = "/home/aistudio/YOLO/images/2024年展位图-test.png"
-# source_image = "/workspace/image/2024年展位图_压缩.jpg"
+# source_image = "/home/aistudio/YOLO/images/2024年展位图_压缩.jpg"
 # source_image = "/workspace/image/2024年展位图.jpg"
 results = model.predict(
     source=source_image, 
