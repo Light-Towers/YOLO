@@ -1,0 +1,26 @@
+# --- 由 Jupyter Notebook 生成的 ---
+.ipynb_checkpoints/
+
+# --- 由 Python 运行时生成的 ---
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- Python 虚拟环境 ---
+# 通常命名如 venv, .venv, env, .env 等
+venv/
+.venv/
+env/
+.env/
+
+# --- 由 setuptools/pip 生成的 ---
+*.egg
+*.egg-info/
+dist/
+build/
+pip-wheel-metadata/
+
+# --- 操作系统生成的 ---
+# 例如 Mac 的 .DS_Store， Windows 的 Thumbs.db
+.DS_Store
+Thumbs.db
