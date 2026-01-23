@@ -1,0 +1,13 @@
+# 数据集路径
+train: /workspace/datasets/YOLO_Train/images/train  # 训练集图片路径
+val: /workspace/datasets/YOLO_Train/images/val        # 验证集图片路径
+#test: /path/to/dataset/images/test      # 测试集图片路径（可选）
+
+# 类别数量
+nc: 3     # 类别总数，例如这里有一个类别，一般在标注时有几类标注框就有几类
+# 类别名称，例如有两个类，仅使用第一位
+#1 0.642 0.724 0.175 0.049   实际为你标注的绿牌1
+#2 0.762 0.434 0.183 0.664   实际为表标注的蓝牌2
+#那么names: ['绿牌','蓝牌']    顺序与标注数据的第一位顺序一致
+# 索引1表示的为绿牌， 索引2表示蓝牌
+names: ['xiao','zhong','da'] #顺序与标注数据的第一位顺序一致
