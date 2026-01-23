@@ -3,11 +3,13 @@ import os
 
 # 1. 定义模型保存路径
 # 请将 '/workspace/my_booth_project' 替换为你希望保存所有训练产出的实际目录
-project_dir = '/workspace/models/train'
+
+# 定义一个基础目录
+project_dir = '../models/train'
 # 为本次训练指定一个名称，训练文件会保存在以该名称命名的子文件夹中
 exp_name = 'booth_seg_v1'
 
-yolo_model="/workspace/models/yolo11/yolo11m-seg.pt"
+yolo_model="../models/yolo11/yolo11m-seg.pt"
 # yolo_model="/workspace/models/yolo26/yolo26m-seg.pt"
 
 # 确保目录存在
@@ -20,7 +22,7 @@ model = YOLO(yolo_model)  # load a pretrained model (recommended for training)
 # 3. 开始训练
 results = model.train(
     # data='coco8-seg.yaml',  # 数据集配置文件路径
-    data='/workspace/script/booth_seg.yaml',  # 数据集配置文件路径
+    data='./booth_seg.yaml',  # 数据集配置文件路径
     epochs=100,                               # 训练轮数
     imgsz=640,                                # 输入图像尺寸
     batch=-1,                                  # 批次大小，即每次训练迭代使用的样本数；-1： 自动计算最大可用 batch
