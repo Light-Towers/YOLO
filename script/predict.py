@@ -6,7 +6,7 @@ import os
 # yolov8x-worldv2.pt  加载 YOLO-World 模型（推荐使用 v8s 或 v8m，权衡速度与精度）
 
 # model_path="/workspace/models/yolo11/yolo11n.pt"
-model_path="/workspace/models/train/booth_seg_v19/weights/best.pt"
+model_path="/home/aistudio/YOLO/models/train/booth_seg_v12/weights/best.pt"
 
 model = YOLO(model_path)
 
@@ -14,8 +14,8 @@ model = YOLO(model_path)
 # source_image = "/workspace/image/长沙国际会展中心.jpg"
 # source_image = "/workspace/image/2025年畜牧-展位分布图-1105-01.png"
 # source_image = "/workspace/image/第十一届世界猪业博览会.jpeg"
-# source_image = "/workspace/image/2024年展位图-test.png"
-source_image = "/workspace/image/2024年展位图_压缩.jpg"
+source_image = "/home/aistudio/YOLO/images/2024年展位图-test.png"
+# source_image = "/workspace/image/2024年展位图_压缩.jpg"
 # source_image = "/workspace/image/2024年展位图.jpg"
 results = model.predict(
     source=source_image, 
@@ -24,7 +24,7 @@ results = model.predict(
     iou=0.4,                          # 稍低于默认值，避免密集展位被误删
     # stream=True,                      # 逐帧处理，不一次性把所有结果塞进显存
     device=0,                          # 指定使用 GPU (0 表示第一块显卡)
-    project="/workspace/output_results",   # 指定项目根目录
+    project="/home/aistudio/YOLO/output_results",   # 指定项目根目录
     name="booth_segment",            # 指定实验名称
     exist_ok=True,                     # 覆盖已有目录
     imgsz=(4051,4286),                  # 提高输入分辨率，有助于检测图中密集的小展位
@@ -61,7 +61,7 @@ if results[0].masks is not None:
         
 
 # 4. 保存结果
-output_path = "/workspace/output_results/red_boxes.jpg"
+output_path = "/home/aistudio/YOLO/output_results/red_boxes.jpg"
 cv2.imwrite(output_path, img)
 print(f"红色框标注完成，保存至: {output_path}")
 print(f"检测到 {len(results[0].boxes) if results else 0} 个物体")

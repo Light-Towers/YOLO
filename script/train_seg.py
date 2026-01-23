@@ -24,7 +24,8 @@ model = YOLO(yolo_model)  # load a pretrained model (recommended for training)
 results = model.train(
     # data='coco8-seg.yaml',  # 数据集配置文件路径
     data= project_dir + 'script/booth_seg.yaml',  # 数据集配置文件路径
-    epochs=100,                               # 训练轮数
+    epochs=300,                               # 训练轮数, 设置一个较大的上限
+    patience=50,                              # 早停耐心值，如果连续50轮验证集mAP无改善，则自动停止
     imgsz=640,                                # 输入图像尺寸
     batch=-1,                                  # 批次大小，即每次训练迭代使用的样本数；-1： 自动计算最大可用 batch
     # augment=True,                             # 启用数据增强，以提高模型的泛化能力
@@ -61,7 +62,6 @@ results = model.train(
     
     # 4. 其他调整
     dropout=0.1,       # 【可选】添加Dropout防止小数据集过拟合
-    patience=50,       # 早停耐心值，若50轮验证指标无改善则停止
     cos_lr=True,       # 使用余弦退火学习率调度，可能帮助更好收敛
     
 )
