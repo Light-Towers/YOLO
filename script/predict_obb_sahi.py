@@ -6,17 +6,16 @@ import numpy as np
 
 # 1. 配置参数
 model_path = "/home/aistudio/YOLO/models/train/booth_obb_v1/weights/best.pt"  # 修改为OBB模型路径
-source_image_path = "/home/aistudio/YOLO/images/第十一届世界猪业博览会.jpeg"
+# source_image_path = "/home/aistudio/YOLO/images/第十一届世界猪业博览会.jpeg"
+source_image_path = "/home/aistudio/YOLO/images/2024年展位图_压缩.jpg"
 output_path = "/home/aistudio/YOLO/output_results/obb_result.jpg"
 
 # 2. 加载模型 (使用 SAHI 的封装器，明确指定任务类型)
 detection_model = AutoDetectionModel.from_pretrained(
     model_type="ultralytics",
     model_path=model_path,
-    confidence_threshold=0.25,  # OBB任务可能调整置信度阈值
+    confidence_threshold=0.7,  # OBB任务可能调整置信度阈值
     device="cuda:0", 
-    # 关键：指定模型任务类型为'obb'
-    model_config_kwargs={'task': 'obb'}
 )
 
 print("正在进行切片推理，请稍候...")
