@@ -8,7 +8,30 @@ import numpy as np
 model_path = "/home/aistudio/YOLO/models/train/booth_obb_v1/weights/best.pt"  # 修改为OBB模型路径
 # source_image_path = "/home/aistudio/YOLO/images/第十一届世界猪业博览会.jpeg"
 source_image_path = "/home/aistudio/YOLO/images/2024年展位图_压缩.jpg"
-output_path = "/home/aistudio/YOLO/output_results/obb_result.jpg"
+
+# 从模型路径中提取版本信息（如 v1, v2 等）
+# 假设模型路径格式为：.../booth_obb_v1/... 或 .../booth_obb_v2/...
+import re
+match = re.search(r'booth_obb_(v\d+)', model_path)
+version = match.group(1) if match else "unknown_version"
+
+# 构建输出目录结构
+base_output_dir = "/home/aistudio/YOLO/output_results"
+obb_result_dir = os.path.join(base_output_dir, "obb_result")
+version_output_dir = os.path.join(obb_result_dir, version)
+
+# 创建目录（如果不存在）
+os.makedirs(version_output_dir, exist_ok=True)
+
+# 从输入图像文件名生成输出文件名
+input_filename = os.path.basename(source_image_path)
+input_name, input_ext = os.path.splitext(input_filename)
+output_filename = f"obb_result_{input_name}{input_ext}"
+output_path = os.path.join(version_output_dir, output_filename)
+
+print(f"模型版本: {version}")
+print(f"输出目录: {version_output_dir}")
+print(f"输出文件: {output_path}")
 
 # 2. 加载模型 (使用 SAHI 的封装器，明确指定任务类型)
 detection_model = AutoDetectionModel.from_pretrained(
