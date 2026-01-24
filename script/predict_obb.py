@@ -22,7 +22,18 @@ print(f"使用Ultralytics原生API进行OBB推理...")
 model = YOLO(model_path, task='obb')
 
 # 2. 执行推理
-results = model(source_image_path, conf=0.25, imgsz=640)
+results = model.predict(
+    source=source_image_path, 
+    save=False,                     # 关闭自动保存绘图
+    conf=0.01,                         # 置信度
+    iou=0.2,                          # 稍低于默认值，避免密集展位被误删
+    # stream=True,                      # 逐帧处理，不一次性把所有结果塞进显存
+    device=0,                          # 指定使用 GPU (0 表示第一块显卡)
+    # project="/home/aistudio/YOLO/output_results",   # 指定项目根目录
+    # name="booth_segment",            # 指定实验名称
+    exist_ok=True,                     # 覆盖已有目录
+    imgsz=(4051,4286),                  # 提高输入分辨率，有助于检测图中密集的小展位
+)
 
 # 3. 处理结果
 img = cv2.imread(source_image_path)

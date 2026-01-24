@@ -7,7 +7,8 @@ import numpy as np
 # 1. 配置参数
 model_path = "/home/aistudio/YOLO/models/train/booth_obb_v1/weights/best.pt"  # 修改为OBB模型路径
 # source_image_path = "/home/aistudio/YOLO/images/第十一届世界猪业博览会.jpeg"
-source_image_path = "/home/aistudio/YOLO/images/2024年展位图_压缩.jpg"
+# source_image_path = "/home/aistudio/YOLO/images/2024年展位图_压缩.jpg"
+source_image_path = "/home/aistudio/YOLO/images/2024年展位图.jpg"
 
 # 从模型路径中提取版本信息（如 v1, v2 等）
 # 假设模型路径格式为：.../booth_obb_v1/... 或 .../booth_obb_v2/...
@@ -57,6 +58,10 @@ result = get_sliced_prediction(
 )
 
 print(f"检测完成！共检测到 {len(result.object_prediction_list)} 个物体。")
+# 4. 绘制结果：准备两张画布 (使用 OpenCV 手动绘制，模仿你之前的逻辑)
+img_original = cv2.imread(source_image_path)
+img_mask = img_original.copy()           # 用于绘制原始掩码轮廓
+img_mask_rectangle = img_original.copy() # 用于绘制最小外接矩形
 
 # 4. 绘制结果：准备画布
 img_original = cv2.imread(source_image_path)
@@ -64,85 +69,117 @@ img_obb = img_original.copy()  # 用于绘制旋转框
 
 object_prediction_list = result.object_prediction_list
 
-# 5. 解析OBB结果并绘制
+# 使用 enumerate 解构出 i 和 j
 for i, prediction in enumerate(object_prediction_list):
-    # OBB任务的关键：获取旋转框信息
-    # 对于OBB任务，Ultralytics返回的bbox可能是旋转框的四个点
-    # 但SAHI可能将其转换为水平框，我们需要检查实际返回的数据结构
-    
-    # 方法1：检查是否有obb属性或特定字段
-    # 首先尝试获取旋转框的四个点
-    try:
-        # 检查SAHI返回的bbox类型
-        bbox = prediction.bbox
+    # # 获取边界框坐标 [x_min, y_min, x_max, y_max]
+    # bbox = prediction.bbox
+    # x1, y1, x2, y2 = int(bbox.minx), int(bbox.miny), int(bbox.maxx), int(bbox.maxy)
+    # # 获取类别和置信度 (可选)
+    # score = prediction.score.value
+    # # 绘制红色框 (BGR: 0, 0, 255), 线宽 3
+    # cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 3)
+
+
+
+    # 检查是否有分割掩码
+    if prediction.mask is not None:
+        # 1. 提取原始掩码
+        # SAHI 的 mask.bool_mask 是一个与原图切片大小对应的布尔矩阵
+        # 我们将其转为 uint8 格式 (0 或 255)
+        mask_data = prediction.mask.bool_mask.astype(np.uint8) * 255
         
-        # 对于OBB任务，我们需要获取旋转框的四个顶点
-        # 这取决于SAHI如何解析Ultralytics OBB模型的输出
+        # 使用 OpenCV 寻找掩码的轮廓
+        contours, _ = cv2.findContours(mask_data, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if not contours:
+            continue
         
-        # 尝试从预测结果中提取旋转框信息
-        # 如果SAHI支持OBB，可能会有额外的属性
+        # --- 任务 1: 绘制原始掩码到 img_mask ---
+        # 直接绘制所有原始轮廓
+        # 参数说明：img, 轮廓列表, -1表示绘制所有轮廓, 颜色(红色), 线宽
+        cv2.drawContours(img_mask, contours, -1, (0, 0, 255), 2)
         
-        # 方法A：如果有obb属性，直接使用
-        if hasattr(prediction, 'obb') and prediction.obb is not None:
-            # OBB格式：通常是四个点 (x1, y1, x2, y2, x3, y3, x4, y4)
-            obb_points = prediction.obb
-            points = np.array(obb_points).reshape(4, 2).astype(int)
+        # --- 关键改动：只选取面积最大的轮廓 ---
+        # 使用 max 函数配合 cv2.contourArea 快速找到最大项
+        main_cnt = max(contours, key=cv2.contourArea)
+        main_area = cv2.contourArea(main_cnt)
+        
+        # 3. --- 任务 2: 提取并绘制矩形到 img_mask_rectangle ---
+        # 即使只剩一个轮廓，也可以保留面积过滤（比如过滤掉太小的误检物体）
+        if main_area >= 100:
+            # 提取最小外接矩形
+            rect = cv2.minAreaRect(main_cnt) 
+            box = cv2.boxPoints(rect).astype(int) 
             
-            # 绘制旋转框的四个边
-            for j in range(4):
-                pt1 = tuple(points[j])
-                pt2 = tuple(points[(j + 1) % 4])
-                cv2.line(img_obb, pt1, pt2, (0, 0, 255), 2)  # 红色边
+            # 绘制规整矩形
+            cv2.drawContours(img_mask_rectangle, [box], 0, (0, 0, 255), 2)
             
-            # 绘制顶点
-            for pt in points:
-                cv2.circle(img_obb, tuple(pt), 5, (0, 255, 0), -1)  # 绿色顶点
-            
-            # 在框中心添加编号
-            center = np.mean(points, axis=0).astype(int)
-            cv2.putText(img_obb, f"{i}", tuple(center), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
-            
-            print(f"物体 {i}: 使用OBB点 {points.tolist()}")
-            
-        # 方法B：如果没有obb属性，尝试从bbox中提取
+            # 在图上绘制唯一编号
+            # 使用矩形中心点 (rect[0]) 标注，比顶点更不容易重叠
+            text_x, text_y = int(rect[0][0]), int(rect[0][1])
+            cv2.putText(img_mask_rectangle, f"{i}", (text_x, text_y), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
         else:
-            # 检查bbox是否有额外信息（如旋转框的表示）
-            # 如果SAHI不支持OBB，bbox将是水平框，我们就绘制水平框
-            x1, y1 = int(bbox.minx), int(bbox.miny)
-            x2, y2 = int(bbox.maxx), int(bbox.maxy)
+            print(f"物体 [{i}] 的最大轮廓面积仅为 {main_area:.2f}，已被作为噪点过滤")
+        
+        
+        
+        # # --- 任务 2: 提取并绘制矩形到 img_mask_rectangle ---
+        # for j, cnt in enumerate(contours):
+        #     area = cv2.contourArea(cnt)     # 计算轮廓面积 (像素)
             
-            # 绘制水平框
-            cv2.rectangle(img_obb, (x1, y1), (x2, y2), (0, 0, 255), 2)
+        #     if area < 400:
+        #         # 打印物体索引 i 和 轮廓索引 j
+        #         print(f"已过滤噪点：物体 [{i}] 的第 ({j}) 个轮廓面积仅为 {area:.2f}")
+        #         continue
+                
+        #     # 提取最小外接矩形
+        #     rect = cv2.minAreaRect(cnt)     # rect 的结构: ((x, y), (w, h), angle)
+        #     box = cv2.boxPoints(rect)       # 获取矩形的四个顶点坐标
+        #     box = box.astype(int)           # 转换为整数像素坐标
             
-            # 添加编号
-            cv2.putText(img_obb, f"{i}", (x1, y1-10), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
+        #     # 绘制到第二张图上
+        #     cv2.drawContours(img_mask_rectangle, [box], 0, (0, 0, 255), 2)
             
-            print(f"物体 {i}: 使用水平框 ({x1}, {y1}, {x2}, {y2})")
+        #     # 在图上绘制编号
+        #     ## 计算写字的位置（取矩形四个顶点的左上角，并稍微偏移一点）
+        #     ## 或者直接使用 rect[0] (中心点)
+        #     text_x, text_y = box[0][0], box[0][1] - 10
             
-    except Exception as e:
-        print(f"处理物体 {i} 时出错: {e}")
-        continue
-    
-    # 进度提示
-    if (i + 1) % 50 == 0:
+        #     ## 参数：图片, 文本, 位置, 字体, 缩放, 颜色(蓝色), 厚度
+        #     cv2.putText(img_mask_rectangle, f"{i}", (text_x, text_y), 
+        #                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
+
+
+        ##  使用 epsilon 逼近优化
+        # for cnt in contours:
+        #     # === 关键步骤：多边形逼近 ===
+        #     # epsilon 是精确度参数，值越大越平滑（边越少）
+        #     epsilon = 0.005 * cv2.arcLength(cnt, True) 
+        #     approx = cv2.approxPolyDP(cnt, epsilon, True)
+        #     # 绘制平滑后的轮廓
+        #     cv2.polylines(img, [approx], True, (0, 0, 255), 2)
+
+
+    else:
+        # 如果没有 mask，则退而求其次绘制 bbox
+        bbox = prediction.bbox
+        x1, y1, x2, y2 = int(bbox.minx), int(bbox.miny), int(bbox.maxx), int(bbox.maxy)
+        cv2.rectangle(img_mask, (x1, y1), (x2, y2), (0, 0, 255), 2)
+        cv2.rectangle(img_mask_rectangle, (x1, y1), (x2, y2), (0, 0, 255), 2)
+
+    # 进度提示：每处理 200 个物体打印一次，防止程序看起来像卡死
+    if (i + 1) % 200 == 0:
         print(f"已处理 {i + 1} / {len(object_prediction_list)} 个物体...")
 
-# 6. 保存结果
-cv2.imwrite(output_path, img_obb)
+
+# 5. 自动生成输出路径并保存
+base_name, ext = os.path.splitext(output_path)
+mask_output_path = f"{base_name}_mask{ext}"
+rect_output_path = f"{base_name}_mask_rectangle{ext}"
+
+cv2.imwrite(mask_output_path, img_mask)
+cv2.imwrite(rect_output_path, img_mask_rectangle)
+
 print("-" * 30)
-print(f"OBB检测结果已保存: {output_path}")
-
-# 7. 统计信息
-print(f"\n检测统计:")
-print(f"  总检测数: {len(object_prediction_list)}")
-print(f"  图片尺寸: {img_original.shape[1]}x{img_original.shape[0]}")
-print(f"  模型路径: {model_path}")
-
-# 8. 可选：显示关键数据（用于调试）
-print("\n前5个检测物体的详细信息:")
-for i, prediction in enumerate(object_prediction_list[:5]):
-    bbox = prediction.bbox
-    score = prediction.score.value
-    print(f"  物体 {i}: 置信度={score:.3f}, 位置=({bbox.minx:.1f}, {bbox.miny:.1f}, {bbox.maxx:.1f}, {bbox.maxy:.1f})")
+print(f"原始掩码图已保存: {mask_output_path}")
+print(f"规整矩形图已保存: {rect_output_path}")
