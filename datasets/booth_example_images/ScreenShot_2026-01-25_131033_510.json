@@ -1,0 +1,250 @@
+{
+  "version": "3.3.6",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          470.07723342005045,
+          181.18357929181036
+        ],
+        [
+          543.1036144316333,
+          234.24035076304853
+        ],
+        [
+          490.09009009009003,
+          307.2072072072072
+        ],
+        [
+          417.06370907850703,
+          254.15043573596898
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 0.6283185307179591
+    },
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          416.4736298164468,
+          253.25565136388244
+        ],
+        [
+          489.5000108280297,
+          306.3124228351206
+        ],
+        [
+          436.4864864864864,
+          379.2792792792793
+        ],
+        [
+          363.4601054749034,
+          326.2225078080411
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 0.6283185307179591
+    },
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          362.87002621284324,
+          325.3277234359545
+        ],
+        [
+          435.8964072244261,
+          378.38449490719273
+        ],
+        [
+          382.8828828828828,
+          451.3513513513514
+        ],
+        [
+          309.8565018712998,
+          398.2945798801132
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 0.6283185307179591
+    },
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          309.7168730596901,
+          396.9493450575761
+        ],
+        [
+          382.743254071273,
+          450.00611652881435
+        ],
+        [
+          329.7297297297297,
+          522.9729729729736
+        ],
+        [
+          256.7033487181467,
+          469.9162015017348
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 0.6283185307179591
+    },
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          169.52995717183967,
+          587.6035506650527
+        ],
+        [
+          242.55633818342255,
+          640.6603221362909
+        ],
+        [
+          189.54281384187925,
+          713.6271785804502
+        ],
+        [
+          116.51643283029625,
+          660.5704071092114
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 0.6283185307179591
+    },
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          116.25892913445648,
+          656.7624291697256
+        ],
+        [
+          189.28531014603934,
+          709.8192006409638
+        ],
+        [
+          136.27178580449606,
+          782.786057085123
+        ],
+        [
+          63.245404792913064,
+          729.7292856138843
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 0.6283185307179591
+    },
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          62.987901097073305,
+          730.5942048706602
+        ],
+        [
+          136.01428210865612,
+          783.6509763418984
+        ],
+        [
+          83.0007577671129,
+          856.6178327860576
+        ],
+        [
+          9.974376755529889,
+          803.5610613148189
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 0.6283185307179591
+    },
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          253.7978169708391,
+          24.23877251449801
+        ],
+        [
+          398.36052927908725,
+          130.8195960519395
+        ],
+        [
+          187.90779050726394,
+          416.27074682922955
+        ],
+        [
+          43.34507819901586,
+          309.6899232917882
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 0.6352998477259364
+    }
+  ],
+  "imagePath": "ScreenShot_2026-01-25_131033_510.png",
+  "imageData": null,
+  "imageHeight": 1206,
+  "imageWidth": 2129
+}
