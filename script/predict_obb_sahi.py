@@ -58,16 +58,20 @@ result = get_sliced_prediction(
 )
 
 print(f"检测完成！共检测到 {len(result.object_prediction_list)} 个物体。")
-# 4. 绘制结果：准备两张画布 (使用 OpenCV 手动绘制，模仿你之前的逻辑)
+# 4. 绘制结果：准备画布
 img_original = cv2.imread(source_image_path)
+
+# 准备两张画布 (使用 OpenCV 手动绘制，模仿你之前的逻辑)
 img_mask = img_original.copy()           # 用于绘制原始掩码轮廓
 img_mask_rectangle = img_original.copy() # 用于绘制最小外接矩形
 
-# 4. 绘制结果：准备画布
-img_original = cv2.imread(source_image_path)
-img_obb = img_original.copy()  # 用于绘制旋转框
-
 object_prediction_list = result.object_prediction_list
+
+
+# 收集所有要绘制的矩形，然后一次性绘制
+all_src_masks = []      # 用于保存所有要绘制的原始掩码
+rect_masks = []     # 用于保要绘制的最小外接矩形
+rect_texts = []     # 用于保存要绘制的文本
 
 # 使用 enumerate 解构出 i 和 j
 for i, prediction in enumerate(object_prediction_list):
@@ -93,15 +97,18 @@ for i, prediction in enumerate(object_prediction_list):
         if not contours:
             continue
         
-        # --- 任务 1: 绘制原始掩码到 img_mask ---
-        # 直接绘制所有原始轮廓
-        # 参数说明：img, 轮廓列表, -1表示绘制所有轮廓, 颜色(红色), 线宽
-        cv2.drawContours(img_mask, contours, -1, (0, 0, 255), 2)
+        # # --- 任务 1: 绘制原始掩码到 img_mask ---
+        # # 直接绘制所有原始轮廓
+        # # 参数说明：img, 轮廓列表, -1表示绘制所有轮廓, 颜色(红色), 线宽
+        # cv2.drawContours(img_mask, contours, -1, (0, 0, 255), 2)
         
         # --- 关键改动：只选取面积最大的轮廓 ---
         # 使用 max 函数配合 cv2.contourArea 快速找到最大项
         main_cnt = max(contours, key=cv2.contourArea)
         main_area = cv2.contourArea(main_cnt)
+
+        # ===== 1. 收集原始掩码轮廓数据 =====
+        all_src_masks.mask_contours.append(main_cnt)
         
         # 3. --- 任务 2: 提取并绘制矩形到 img_mask_rectangle ---
         # 即使只剩一个轮廓，也可以保留面积过滤（比如过滤掉太小的误检物体）
@@ -110,14 +117,19 @@ for i, prediction in enumerate(object_prediction_list):
             rect = cv2.minAreaRect(main_cnt) 
             box = cv2.boxPoints(rect).astype(int) 
             
-            # 绘制规整矩形
-            cv2.drawContours(img_mask_rectangle, [box], 0, (0, 0, 255), 2)
+            # # 绘制规整矩形
+            # cv2.drawContours(img_mask_rectangle, [box], 0, (0, 0, 255), 2)
+            # 收集最小外接矩形数据
+            rect_masks.append(box)
+            
             
             # 在图上绘制唯一编号
             # 使用矩形中心点 (rect[0]) 标注，比顶点更不容易重叠
             text_x, text_y = int(rect[0][0]), int(rect[0][1])
-            cv2.putText(img_mask_rectangle, f"{i}", (text_x, text_y), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
+            # cv2.putText(img_mask_rectangle, f"{i}", (text_x, text_y), 
+            #             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
+            # 收集文本标注数据
+            rect_texts.append((text_x, text_y, str(i)))
         else:
             print(f"物体 [{i}] 的最大轮廓面积仅为 {main_area:.2f}，已被作为噪点过滤")
         
@@ -166,10 +178,20 @@ for i, prediction in enumerate(object_prediction_list):
         x1, y1, x2, y2 = int(bbox.minx), int(bbox.miny), int(bbox.maxx), int(bbox.maxy)
         cv2.rectangle(img_mask, (x1, y1), (x2, y2), (0, 0, 255), 2)
         cv2.rectangle(img_mask_rectangle, (x1, y1), (x2, y2), (0, 0, 255), 2)
+        print(f"无掩码，物体 [{i}] 使用边界框绘制。")
 
     # 进度提示：每处理 200 个物体打印一次，防止程序看起来像卡死
     if (i + 1) % 200 == 0:
         print(f"已处理 {i + 1} / {len(object_prediction_list)} 个物体...")
+
+
+# 一次性绘制所有矩形
+if all_src_masks:
+    cv2.drawContours(img_mask, all_src_masks, -1, (0, 0, 255), 2)
+    print("✓ 原始掩码轮廓绘制完成")
+
+if rect_masks:
+    cv2.drawContours(img_mask_rectangle, rect_masks, -1, (0, 0, 255), 2)
 
 
 # 5. 自动生成输出路径并保存
