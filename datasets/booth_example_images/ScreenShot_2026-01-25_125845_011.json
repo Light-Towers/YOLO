@@ -1,8 +1,10 @@
 {
-  "version": "3.3.6",
+  "version": "3.3.7",
   "flags": {},
   "shapes": [
     {
+      "kie_linking": [],
+      "direction": 0.8377580409572789,
       "label": "booth",
       "score": null,
       "points": [
@@ -28,11 +30,11 @@
       "difficult": false,
       "shape_type": "rotation",
       "flags": {},
-      "attributes": {},
-      "kie_linking": [],
-      "direction": 0.8377580409572789
+      "attributes": {}
     },
     {
+      "kie_linking": [],
+      "direction": 0.8429940287132619,
       "label": "booth",
       "score": null,
       "points": [
@@ -58,11 +60,11 @@
       "difficult": false,
       "shape_type": "rotation",
       "flags": {},
-      "attributes": {},
-      "kie_linking": [],
-      "direction": 0.8429940287132619
+      "attributes": {}
     },
     {
+      "kie_linking": [],
+      "direction": 0.9407324668249445,
       "label": "booth",
       "score": null,
       "points": [
@@ -88,11 +90,11 @@
       "difficult": false,
       "shape_type": "rotation",
       "flags": {},
-      "attributes": {},
-      "kie_linking": [],
-      "direction": 0.9407324668249445
+      "attributes": {}
     },
     {
+      "kie_linking": [],
+      "direction": 0.9407324668249445,
       "label": "booth",
       "score": null,
       "points": [
@@ -118,11 +120,11 @@
       "difficult": false,
       "shape_type": "rotation",
       "flags": {},
-      "attributes": {},
-      "kie_linking": [],
-      "direction": 0.9407324668249445
+      "attributes": {}
     },
     {
+      "kie_linking": [],
+      "direction": 0.9407324668249445,
       "label": "booth",
       "score": null,
       "points": [
@@ -148,11 +150,11 @@
       "difficult": false,
       "shape_type": "rotation",
       "flags": {},
-      "attributes": {},
-      "kie_linking": [],
-      "direction": 0.9407324668249445
+      "attributes": {}
     },
     {
+      "kie_linking": [],
+      "direction": 0.9407324668249445,
       "label": "booth",
       "score": null,
       "points": [
@@ -178,11 +180,11 @@
       "difficult": false,
       "shape_type": "rotation",
       "flags": {},
-      "attributes": {},
-      "kie_linking": [],
-      "direction": 0.9407324668249445
+      "attributes": {}
     },
     {
+      "kie_linking": [],
+      "direction": 0.9407324668249445,
       "label": "booth",
       "score": null,
       "points": [
@@ -208,11 +210,11 @@
       "difficult": false,
       "shape_type": "rotation",
       "flags": {},
-      "attributes": {},
-      "kie_linking": [],
-      "direction": 0.9407324668249445
+      "attributes": {}
     },
     {
+      "kie_linking": [],
+      "direction": 0.9407324668249445,
       "label": "booth",
       "score": null,
       "points": [
@@ -238,11 +240,11 @@
       "difficult": false,
       "shape_type": "rotation",
       "flags": {},
-      "attributes": {},
-      "kie_linking": [],
-      "direction": 0.9407324668249445
+      "attributes": {}
     },
     {
+      "kie_linking": [],
+      "direction": 0.9407324668249445,
       "label": "booth",
       "score": null,
       "points": [
@@ -268,11 +270,11 @@
       "difficult": false,
       "shape_type": "rotation",
       "flags": {},
-      "attributes": {},
-      "kie_linking": [],
-      "direction": 0.9407324668249445
+      "attributes": {}
     },
     {
+      "kie_linking": [],
+      "direction": 0.9407324668249445,
       "label": "booth",
       "score": null,
       "points": [
@@ -298,11 +300,11 @@
       "difficult": false,
       "shape_type": "rotation",
       "flags": {},
-      "attributes": {},
-      "kie_linking": [],
-      "direction": 0.9407324668249445
+      "attributes": {}
     },
     {
+      "kie_linking": [],
+      "direction": 0.9407324668249445,
       "label": "booth",
       "score": null,
       "points": [
@@ -328,13 +330,12 @@
       "difficult": false,
       "shape_type": "rotation",
       "flags": {},
-      "attributes": {},
-      "kie_linking": [],
-      "direction": 0.9407324668249445
+      "attributes": {}
     }
   ],
   "imagePath": "ScreenShot_2026-01-25_125845_011.png",
   "imageData": null,
   "imageHeight": 1206,
-  "imageWidth": 2085
+  "imageWidth": 2085,
+  "description": ""
 }

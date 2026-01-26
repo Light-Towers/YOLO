@@ -1,0 +1,100 @@
+{
+  "version": "3.3.7",
+  "flags": {},
+  "shapes": [
+    {
+      "kie_linking": [],
+      "direction": 0.8464846872172506,
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          704.2909199593103,
+          134.92670596141886
+        ],
+        [
+          879.9024500848238,
+          333.41943264268485
+        ],
+        [
+          482.7222222222223,
+          684.8148148148148
+        ],
+        [
+          307.11069209670865,
+          486.32208813354856
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {}
+    },
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          913.3024263746784,
+          553.0676809871562
+        ],
+        [
+          986.9309999193126,
+          661.40883692565
+        ],
+        [
+          877.4014084507043,
+          735.8450704225352
+        ],
+        [
+          803.7728349060699,
+          627.5039144840414
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 0.9738937226128368
+    },
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          801.330595388763,
+          629.1240190153252
+        ],
+        [
+          874.9591689333972,
+          737.465174953819
+        ],
+        [
+          765.4295774647888,
+          811.9014084507041
+        ],
+        [
+          691.8010039201545,
+          703.5602525122104
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 0.9738937226128368
+    }
+  ],
+  "imagePath": "ScreenShot_2026-01-26_141126_101.png",
+  "imageData": null,
+  "imageHeight": 840,
+  "imageWidth": 1071
+}

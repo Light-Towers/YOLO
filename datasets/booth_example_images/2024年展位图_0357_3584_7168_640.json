@@ -1,0 +1,40 @@
+{
+  "version": "3.3.7",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          444.8143007695269,
+          146.07757424581268
+        ],
+        [
+          498.6858974358974,
+          302.53205128205127
+        ],
+        [
+          223.08124373625128,
+          397.4303439019748
+        ],
+        [
+          169.2096470698807,
+          240.97586686573612
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 1.2391837689159753
+    }
+  ],
+  "imagePath": "2024年展位图_0357_3584_7168_640.jpg",
+  "imageData": null,
+  "imageHeight": 640,
+  "imageWidth": 640
+}
