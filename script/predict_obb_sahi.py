@@ -108,7 +108,7 @@ for i, prediction in enumerate(object_prediction_list):
         main_area = cv2.contourArea(main_cnt)
 
         # ===== 1. 收集原始掩码轮廓数据 =====
-        all_src_masks.mask_contours.append(main_cnt)
+        all_src_masks.append(main_cnt)
         
         # 3. --- 任务 2: 提取并绘制矩形到 img_mask_rectangle ---
         # 即使只剩一个轮廓，也可以保留面积过滤（比如过滤掉太小的误检物体）
