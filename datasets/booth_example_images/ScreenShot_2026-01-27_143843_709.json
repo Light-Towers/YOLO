@@ -1,0 +1,100 @@
+{
+  "version": "3.3.7",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          216.49017509019376,
+          201.3386404951252
+        ],
+        [
+          330.2194244604317,
+          420.74460431654677
+        ],
+        [
+          154.29045762401253,
+          511.93751900446534
+        ],
+        [
+          40.56120825377454,
+          292.53155518304374
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 1.0925761117484507
+    },
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          498.0282086036577,
+          75.42507180113734
+        ],
+        [
+          546.5698892558385,
+          215.60508172628442
+        ],
+        [
+          360.0622121167443,
+          280.18915550185517
+        ],
+        [
+          311.52053146456353,
+          140.00914557670816
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 1.23743843966398
+    },
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          564.4432146246365,
+          264.2229582084679
+        ],
+        [
+          629.65227984685,
+          452.5355029585799
+        ],
+        [
+          441.58963695251083,
+          517.6580319044457
+        ],
+        [
+          376.38057173029733,
+          329.3454871543336
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 1.23743843966398
+    }
+  ],
+  "imagePath": "ScreenShot_2026-01-27_143843_709.png",
+  "imageData": null,
+  "imageHeight": 653,
+  "imageWidth": 659
+}

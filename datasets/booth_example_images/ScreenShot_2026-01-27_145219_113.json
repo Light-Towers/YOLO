@@ -1,0 +1,40 @@
+{
+  "version": "3.3.7",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          62.57142857142844,
+          235.00000000000006
+        ],
+        [
+          621.8571428571427,
+          235.00000000000003
+        ],
+        [
+          621.8571428571427,
+          420.7142857142857
+        ],
+        [
+          62.5714285714285,
+          420.7142857142857
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 0.0
+    }
+  ],
+  "imagePath": "ScreenShot_2026-01-27_145219_113.png",
+  "imageData": null,
+  "imageHeight": 650,
+  "imageWidth": 668
+}
