@@ -17,8 +17,6 @@ exp_name = 'booth_obb_v1'  # 修改实验名称以区分OBB任务
 # ========== 关键修改1：使用OBB模型 ==========
 # 选择适合的OBB模型，注意模型后缀是-obb
 yolo_model = project_dir + "models/yolo11/yolo11m-obb.pt"  # 推荐使用yolo11m-obb.pt
-# 或使用YOLOv8的OBB模型（如果你有的话）
-# yolo_model = project_dir + "models/yolov8/yolov8m-obb.pt"
 
 # 确保目录存在
 os.makedirs(train_output_path, exist_ok=True)
@@ -36,8 +34,8 @@ results = model.train(
     
     epochs=300,                               # 训练轮数
     patience=50,                              # 早停耐心值
-    imgsz=640,                                # 输入图像尺寸
-    batch=-1,                                 # 自动计算最大可用batch
+    imgsz=1024,                                # 输入图像尺寸
+    batch=0.9,                                 # 【3种方式】16：固定方式；-1 自动计算最大可用batch； 0.8：按gpu内存分配
     device=0,                                 # 训练设备
     
     # ========== 项目相关参数 ==========
@@ -50,6 +48,8 @@ results = model.train(
     # ========== 训练优化参数 ==========
     workers=8,                                # 工作线程数
     amp=True,                                 # 开启混合精度训练
+    cache=True,                             # 将数据集缓存到内存中 🚀
+    compile=True,                           # 开启内核编译加速
     
     # ========== 关键修改3：调整数据增强策略 ==========
     # OBB任务对旋转敏感，需要谨慎调整旋转增强
@@ -84,7 +84,7 @@ results = model.train(
     # ========== 其他调整 ==========
     dropout=0.0,        # OBB任务通常不需要dropout
     cos_lr=True,        # 使用余弦退火学习率调度
-    label_smoothing=0.0, # 标签平滑
+    # label_smoothing=0.0, # 标签平滑 (弃用)
     
     # ========== 验证相关参数 ==========
     val=True,           # 在训练期间进行验证
