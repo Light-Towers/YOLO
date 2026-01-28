@@ -54,8 +54,8 @@ def slice_image(image_path, output_dir, tile_size=1024, overlap_ratio=0.2):
 
 # ==== 使用示例 ====
 # 请修改以下路径和参数
-input_image_path = "/workspace/image/第十一届世界猪业博览会.jpeg"  # 替换为你的图片实际路径
-output_directory = "/workspace/image/slice_out"                      # 替换为你希望的输出文件夹
+input_image_path = "D:/Study/github/YOLO/images/2024年展位图.jpg"  # 替换为你的图片实际路径
+output_directory = "D:/0-mingyang/img_handle/YOLO_Train/slice_out_1024"                      # 替换为你希望的输出文件夹
 
 # 调用函数（参数采用上方推荐值）
-slice_image(input_image_path, output_directory, tile_size=640, overlap_ratio=0.2)
+slice_image(input_image_path, output_directory, tile_size=1024, overlap_ratio=0.2)

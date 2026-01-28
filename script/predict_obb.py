@@ -4,8 +4,9 @@ import numpy as np
 import os
 
 # 配置参数
-model_path = "/home/aistudio/YOLO/models/train/booth_obb_v1/weights/best.pt"
-source_image_path = "/home/aistudio/YOLO/images/第十一届世界猪业博览会.jpeg"
+model_path = "/home/aistudio/YOLO/models/train/booth_obb_mix_booth_obb_v12/weights/best.pt"
+# source_image_path = "/home/aistudio/YOLO/images/2024年展位图_压缩.jpg"
+source_image_path = "/home/aistudio/YOLO/images/2024年展位图.jpg"
 
 # 创建输出目录
 output_dir = "/home/aistudio/YOLO/output_results/ultralytics_obb"
@@ -25,7 +26,7 @@ model = YOLO(model_path, task='obb')
 results = model.predict(
     source=source_image_path, 
     save=False,                     # 关闭自动保存绘图
-    conf=0.01,                         # 置信度
+    conf=0.7,                         # 置信度
     iou=0.2,                          # 稍低于默认值，避免密集展位被误删
     # stream=True,                      # 逐帧处理，不一次性把所有结果塞进显存
     device=0,                          # 指定使用 GPU (0 表示第一块显卡)
@@ -52,7 +53,7 @@ for result_idx, r in enumerate(results):
             # box是4个点，每个点有(x, y)坐标
             points = box.reshape(4, 2).astype(int)
             
-            print(f"物体 {i}: 旋转框顶点 = {points.tolist()}, 置信度 = {conf:.3f}")
+            # print(f"物体 {i}: 旋转框顶点 = {points.tolist()}, 置信度 = {conf:.3f}")
             
             # 绘制旋转框的四个边
             for j in range(4):
@@ -64,11 +65,11 @@ for result_idx, r in enumerate(results):
             for pt in points:
                 cv2.circle(img, tuple(pt), 5, (0, 255, 0), -1)  # 绿色顶点
             
-            # 在框中心添加编号和置信度
-            center = np.mean(points, axis=0).astype(int)
-            label = f"{i}:{conf:.2f}"
-            cv2.putText(img, label, tuple(center), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+            # # 在框中心添加编号和置信度
+            # center = np.mean(points, axis=0).astype(int)
+            # label = f"{i}:{conf:.2f}"
+            # cv2.putText(img, label, tuple(center), 
+            #            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
             
             all_predictions.append({
                 'id': i,
