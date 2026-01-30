@@ -3,9 +3,11 @@ import os
 from pathlib import Path
 import yaml
 import re
-import sys
 import torch
 from log_config import get_project_logger
+
+# 导入predict_sahi模块
+from predict_sahi import start_predict
 
 # 获取项目logger
 logger = get_project_logger('train')
@@ -20,7 +22,7 @@ models_to_train = [
 ]
 
 # [配置项] 数据集名称 (datasets 目录下的文件夹名)
-dataset_name = "fixed_tiled_dataset_1"
+dataset_name = "booth_seg"
 
 # [配置项] 实验/轮次名称 (用于区分同一模型的不同训练配置)
 exp_name = 'booth_obb_v1'
@@ -31,7 +33,6 @@ prediction_images = [
     # "/home/aistudio/YOLO/images/第十一届世界猪业博览会.jpeg",
     # "/home/aistudio/YOLO/images/长沙国际会展中心.jpg",
     # "/home/aistudio/YOLO/images/2020畜博会.png",
-    # "/home/aistudio/YOLO/images/2025年畜牧-展位分布图-1105-01.png"
 ]
 
 # [动态检测] 硬件资源
@@ -95,17 +96,12 @@ def run_predict_sahi_after_training(model_path, image_path):
     在训练完成后通过调用predict_sahi模块运行预测
     """
     try:
-        # 导入predict_sahi模块的start_predict函数
-        from script.predict_sahi import start_predict
-        
         logger.info(f"Starting prediction for image: {image_path}")
         
         # 调用predict_sahi模块的start_predict函数
         start_predict(model_path, image_path)
         
         logger.info("SAHI prediction completed successfully.")
-    except ImportError:
-        logger.error("Could not import predict_sahi module. Make sure predict_sahi.py is in the correct location.")
     except Exception as e:
         logger.error(f"Error occurred when calling predict_sahi module: {str(e)}")
 
@@ -119,7 +115,7 @@ dataset_yaml_path = dataset_root / 'dataset.yaml'
 # 更新数据集路径配置
 update_dataset_path(dataset_yaml_path, dataset_root)
 
-# 存储所有训练完成的模型路径和名称
+# 存储所有训练完成的模型路径
 trained_models = []
 
 for model_filename in models_to_train:
@@ -133,11 +129,11 @@ for model_filename in models_to_train:
         logger.error(f"Pretrained model not found at {yolo_model_path}. Skipping...")
         continue
 
-    # 定义简化的输出路径: output/models/{model_name}/{exp_name}/
+    # 定义简化的输出路径: output_results/models/{model_name}/{exp_name}/
     # 去掉 .pt 后缀作为文件夹名
     model_folder_name = Path(model_filename).stem
-    train_save_dir = project_dir / 'output' / 'models' / model_folder_name
-
+    train_save_dir = project_dir / 'output_results' / 'models' / model_folder_name
+    
     # 加载模型
     model = YOLO(str(yolo_model_path))
 
@@ -146,7 +142,7 @@ for model_filename in models_to_train:
         # 数据集配置文件
         data=str(dataset_yaml_path),
         
-        epochs=300,                               # 训练轮数
+        epochs=3,                               # 训练轮数
         patience=50,                              # 早停耐心值
         imgsz=640,                                # 输入图像尺寸
         batch=0.9,                                # 【3种方式】16：固定方式；-1 自动计算最大可用batch； 0.8：按gpu内存分配
@@ -160,10 +156,10 @@ for model_filename in models_to_train:
         save_period=-1,                           # 仅在最后保存检查点
         pretrained=True,                          # 从预训练模型开始训练。可以是一个布尔值，也可以是加载权重的特定模型的字符串路径。增强训练效率和模型性能。
         
-        # ========== 训练优化参数 ==========
-        amp=True,                                 # 开启混合精度训练，某些显卡不需要
-        cache=True,                               # 将数据集缓存到内存中 🚀
-        compile=True,                             # 开启内核编译加速
+        # # ========== 训练优化参数 ==========
+        # amp=True,                                 # 开启混合精度训练，某些显卡不需要
+        # cache=True,                               # 将数据集缓存到内存中 🚀
+        # compile=True,                             # 开启内核编译加速
         
         # ========== 关键修改3：调整数据增强策略 ==========
         # OBB任务对旋转敏感，需要谨慎调整旋转增强
@@ -215,18 +211,32 @@ for model_filename in models_to_train:
         deterministic=True, # 确保可重复性
     )
 
-    # 获取训练后的最佳模型路径
-    best_model_path = train_save_dir / exp_name / 'weights' / 'best.pt'
+    # 获取训练后的最佳模型路径 - 使用实际的项目和实验名称
+    actual_project_dir = train_save_dir / exp_name
+    best_model_path = actual_project_dir / 'weights' / 'best.pt'
+    
+    # 如果上述路径不存在，尝试找到实际的输出目录
+    if not best_model_path.exists():
+        # 查找最新的训练输出目录
+        exp_dirs = list(train_save_dir.glob(f"{exp_name}*"))
+        if exp_dirs:
+            # 按名称排序，取最后一个（最新的）
+            latest_exp_dir = sorted(exp_dirs)[-1]
+            best_model_path = latest_exp_dir / 'weights' / 'best.pt'
+            logger.info(f"Found actual model path: {best_model_path}")
+        else:
+            logger.error(f"Could not find trained model at expected location: {actual_project_dir}")
+            continue
     
     logger.info(f"Finished training for: {model_filename}")
-    logger.info(f"Results saved in: {train_save_dir / exp_name}")
-
+    logger.info(f"Results saved in: {actual_project_dir}")
+    
     # 将训练完成的模型路径添加到列表中
     trained_models.append((best_model_path, model_filename))
 
 # 所有模型训练完成后，统一进行预测
 logger.info("="*50)
-logger.info("All training completed. Starting unified prediction for all models...")
+logger.info("All training completed. Starting unified prediction for all models and images...")
 logger.info("="*50)
 
 # 获取所有图片路径
