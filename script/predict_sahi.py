@@ -43,7 +43,7 @@ def start_predict(model_path, image_path, dataset_name=None, output_dir=None):
     if output_dir is not None:
         base_output_dir = Path(output_dir)
     else:
-        base_output_dir = project_dir / "output" / "output_results"
+        base_output_dir = project_dir / "output" / "results"
     
     # 如果提供了数据集名称，使用它，否则尝试从模型路径推断
     if dataset_name is None:
