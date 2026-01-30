@@ -36,12 +36,12 @@ exp_name = 'booth_obb_v1'
 
 # [配置项] 预测图像路径列表 (支持单个或多个图片路径，或图片文件夹路径)
 prediction_images = [
-    # "/home/aistudio/YOLO/images/2024年展位图.jpg",
-    # "/home/aistudio/YOLO/images/第十一届世界猪业博览会.jpeg",
-    # "/home/aistudio/YOLO/images/长沙国际会展中心.jpg",
-    # "/home/aistudio/YOLO/images/2020畜博会.png",
+    f"{project_dir}/images/2024年展位图.jpg",
+    f"{project_dir}/images/第十一届世界猪业博览会.jpeg",
+    f"{project_dir}/images/长沙国际会展中心.jpg",
+    f"{project_dir}/images/2020畜博会.png",
 
-    f"{project_dir}/images",   # 使用目录
+    # f"{project_dir}/images",   # 使用目录
 ]
 
 # ========================================================
