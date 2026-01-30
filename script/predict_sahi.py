@@ -115,7 +115,7 @@ def start_predict(model_path, image_path, dataset_name=None, output_dir=None):
             "name": prediction.category.name,
             "class": prediction.category.id,
             "confidence": float(prediction.score.value),
-            "bbox": prediction.bbox.to_xyxy().tolist(),
+            "bbox": prediction.bbox.to_xyxy(),
             "poly": prediction.mask.segmentation[0]  #  OBB 任务，尝试获取多边形点 (Segmentation/OBB)，这将捕获物体的实际形状
         })
 
@@ -128,12 +128,15 @@ def start_predict(model_path, image_path, dataset_name=None, output_dir=None):
 
 
 if __name__ == "__main__":
+    # 定义项目根目录：假设 script 在 project_root/script 下
+    project_root = Path(__file__).resolve().parent.parent
+
     parser = argparse.ArgumentParser(description='Run SAHI prediction with given model and image')
-    parser.add_argument('--model_path', type=str, help='Path to the trained model', 
-                        default='D:/Study/github/YOLO/models/train/booth_obb_v13/weights/best.pt',
+    parser.add_argument('--model_path', type=str, help='Path to the trained model',
+                        default=str(project_root / 'models' / 'train' / 'booth_obb_v13' / 'weights' / 'best.pt'),
                         required=False)
-    parser.add_argument('--image_path', type=str, help='Path to the image to predict', 
-                        default='D:/Study/github/YOLO/images/第十一届世界猪业博览会.jpeg',
+    parser.add_argument('--image_path', type=str, help='Path to the image to predict',
+                        default=str(project_root / 'images' / '第十一届世界猪业博览会.jpeg'),
                         required=False)
     parser.add_argument('--dataset_name', type=str, help='Dataset name to organize outputs', default=None)
     parser.add_argument('--output_dir', type=str, help='Directory to save prediction results', default=None)
