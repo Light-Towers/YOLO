@@ -10,7 +10,7 @@ from pathlib import Path
 # 获取项目logger
 logger = get_project_logger('predict_obb_sahi')
 
-def start_predict(model_path, image_path, output_dir=None):
+def start_predict(model_path, image_path, dataset_name=None, output_dir=None):
     # 确保必须提供model_path和image_path参数
     if model_path is None:
         raise ValueError("model_path must be provided")
@@ -20,7 +20,7 @@ def start_predict(model_path, image_path, output_dir=None):
     model_path = str(model_path)
     image_path = str(image_path)
 
-    # 从模型路径中提取模型名称，而不是版本号
+    # 从模型路径中提取模型名称
     model_name = Path(model_path).parent.parent.name  # 获取上级目录名，通常是模型名称
     if model_name == "weights":
         # 如果上两级目录是 weights 目录，则取再上一级目录名
@@ -43,22 +43,35 @@ def start_predict(model_path, image_path, output_dir=None):
     if output_dir is not None:
         base_output_dir = Path(output_dir)
     else:
-        base_output_dir = project_dir / "output/output_results"
+        base_output_dir = project_dir / "output" / "output_results"
     
-    obb_result_dir = base_output_dir / "mix_booth_obb_result"
-    version_output_dir = obb_result_dir / f"{model_name}_src640"
+    # 如果提供了数据集名称，使用它，否则尝试从模型路径推断
+    if dataset_name is None:
+        # 从模型路径尝试推断数据集名称
+        parent_parts = str(Path(model_path).parent)
+        # 查找可能的数据集名称部分
+        if "booth" in parent_parts:
+            dataset_name = "booth"
+        else:
+            dataset_name = "default_dataset"
+    else:
+        dataset_name = str(dataset_name)
+
+    # 创建模型和数据集的输出目录
+    model_dataset_dir = base_output_dir / model_name / dataset_name
 
     # 创建目录（如果不存在）
-    os.makedirs(version_output_dir, exist_ok=True)
+    os.makedirs(model_dataset_dir, exist_ok=True)
 
     # 从输入图像文件名生成输出文件名
     input_filename = os.path.basename(image_path)
     input_name, input_ext = os.path.splitext(input_filename)
     output_filename = f"obb_result_{input_name}_{model_name}"
-    output_path = version_output_dir / output_filename
+    output_path = model_dataset_dir / output_filename
 
     logger.info(f"模型名称: {model_name}")
-    logger.info(f"输出目录: {version_output_dir}")
+    logger.info(f"数据集名称: {dataset_name}")
+    logger.info(f"输出目录: {model_dataset_dir}")
     logger.info(f"输出文件: {output_path}.png")
 
     # 2. 加载模型 (使用 SAHI 的封装器，明确指定任务类型)
@@ -88,7 +101,7 @@ def start_predict(model_path, image_path, output_dir=None):
 
     # 4. 导出结果
     result.export_visuals(
-        export_dir=str(version_output_dir),
+        export_dir=str(model_dataset_dir),
         hide_labels=True,      # 隐藏类别名称
         hide_conf=True,        # 隐藏置信度数值
         rect_th=2,              # 调小线条粗细（默认通常为 2 或 3）
@@ -106,18 +119,19 @@ def start_predict(model_path, image_path, output_dir=None):
         })
 
     ## 保存为 JSON
-    json_path = version_output_dir / f"{output_filename}.json"
+    json_path = model_dataset_dir / f"{output_filename}.json"
     with open(json_path, "w") as f:
         json.dump(summary_data, f, indent=4)
 
-    logger.info(f"SAHI prediction completed. Results saved to {version_output_dir}")
+    logger.info(f"SAHI prediction completed. Results saved to {model_dataset_dir}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run SAHI prediction with given model and image')
     parser.add_argument('--model_path', type=str, help='Path to the trained model', required=True)
     parser.add_argument('--image_path', type=str, help='Path to the image to predict', required=True)
+    parser.add_argument('--dataset_name', type=str, help='Dataset name to organize outputs', default=None)
     parser.add_argument('--output_dir', type=str, help='Directory to save prediction results', default=None)
     args = parser.parse_args()
     
-    start_predict(args.model_path, args.image_path, args.output_dir)
+    start_predict(args.model_path, args.image_path, args.dataset_name, args.output_dir)

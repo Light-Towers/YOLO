@@ -29,8 +29,8 @@ exp_name = 'booth_obb_v1'
 
 # [配置项] 预测图像路径列表 (支持单个或多个图片路径，或图片文件夹路径)
 prediction_images = [
-    "/home/aistudio/YOLO/images/2024年展位图.jpg",
-    # "/home/aistudio/YOLO/images/第十一届世界猪业博览会.jpeg",
+    # "/home/aistudio/YOLO/images/2024年展位图.jpg",
+    "/home/aistudio/YOLO/images/第十一届世界猪业博览会.jpeg",
     # "/home/aistudio/YOLO/images/长沙国际会展中心.jpg",
     # "/home/aistudio/YOLO/images/2020畜博会.png",
 ]
@@ -98,8 +98,8 @@ def run_predict_sahi_after_training(model_path, image_path):
     try:
         logger.info(f"Starting prediction for image: {image_path}")
         
-        # 调用predict_sahi模块的start_predict函数
-        start_predict(model_path, image_path)
+        # 调用predict_sahi模块的start_predict函数，传递数据集名称
+        start_predict(model_path, image_path, dataset_name)
         
         logger.info("SAHI prediction completed successfully.")
     except Exception as e:
