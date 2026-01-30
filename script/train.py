@@ -22,7 +22,7 @@ models_to_train = [
 ]
 
 # [配置项] 数据集名称 (datasets 目录下的文件夹名)
-dataset_name = "booth_seg"
+dataset_name = "fixed_tiled_dataset_1"
 
 # [配置项] 实验/轮次名称 (用于区分同一模型的不同训练配置)
 exp_name = 'booth_obb_v1'
@@ -129,10 +129,10 @@ for model_filename in models_to_train:
         logger.error(f"Pretrained model not found at {yolo_model_path}. Skipping...")
         continue
 
-    # 定义简化的输出路径: output_results/models/{model_name}/{exp_name}/
+    # 定义简化的输出路径: output/models/{model_name}/{exp_name}/
     # 去掉 .pt 后缀作为文件夹名
     model_folder_name = Path(model_filename).stem
-    train_save_dir = project_dir / 'output_results' / 'models' / model_folder_name
+    train_save_dir = project_dir / 'output' / 'models' / model_folder_name
     
     # 加载模型
     model = YOLO(str(yolo_model_path))
