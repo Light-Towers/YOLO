@@ -15,13 +15,17 @@ from predict_sahi import start_predict
 # 获取项目logger
 logger = get_project_logger('train_predict_pipeline')
 
+# 定义动态基础路径
+project_dir = Path(__file__).resolve().parent.parent
+logger.info(f"Project root directory: {project_dir}")
+
 # ==================== 1. 自动化配置提取 ====================
 # [配置项] 待训练的模型列表
 # 脚本会自动根据模型名称识别版本（如 yolo11, yolov8, yolo26 等）并寻找预训练权重
 models_to_train = [
-    "yolo11m-obb.pt",
-    # "yolov8s-obb.pt",
-    # "yolo26n-obb.pt",
+    "yolov8s-obb.pt",
+    "yolo11s-obb.pt",
+    "yolo26s-obb.pt",
 ]
 
 # [配置项] 数据集名称 (datasets 目录下的文件夹名)
@@ -33,16 +37,14 @@ exp_name = 'booth_obb_v1'
 # [配置项] 预测图像路径列表 (支持单个或多个图片路径，或图片文件夹路径)
 prediction_images = [
     # "/home/aistudio/YOLO/images/2024年展位图.jpg",
-    "/home/aistudio/YOLO/images/第十一届世界猪业博览会.jpeg",
+    # "/home/aistudio/YOLO/images/第十一届世界猪业博览会.jpeg",
     # "/home/aistudio/YOLO/images/长沙国际会展中心.jpg",
     # "/home/aistudio/YOLO/images/2020畜博会.png",
+
+    f"{project_dir}/images",   # 使用目录
 ]
 
 # ========================================================
-
-# 2. 定义动态基础路径
-project_dir = Path(__file__).resolve().parent.parent
-logger.info(f"Project root directory: {project_dir}")
 
 def get_image_paths(image_sources):
     """
@@ -55,11 +57,14 @@ def get_image_paths(image_sources):
             # 如果是单个文件
             image_paths.append(str(source_path))
         elif source_path.is_dir():
-            # 如果是目录，获取目录中所有图片文件
+            # 如果是目录，获取目录中所有图片文件（仅当前目录，避免递归到系统目录）
             extensions = ['*.jpg', '*.jpeg', '*.png', '*.bmp', '*.tiff', '*.tif']
             for ext in extensions:
-                image_paths.extend([str(p) for p in source_path.glob(ext)])
-                image_paths.extend([str(p) for p in source_path.rglob(f"*.{ext.lstrip('*.')}")])
+                try:
+                    image_paths.extend([str(p) for p in source_path.glob(ext)])
+                except (NotADirectoryError, PermissionError, OSError):
+                    # 忽略系统特殊文件或权限问题
+                    continue
         else:
             logger.warning(f"Image source does not exist: {source}")
     
@@ -100,8 +105,7 @@ for model_filename in models_to_train:
     # 获取预训练模型绝对路径
     yolo_model_path = get_model_path(model_filename, project_dir)
     if not yolo_model_path.exists():
-        logger.error(f"Pretrained model not found at {yolo_model_path}. Skipping...")
-        continue
+        logger.warning(f"Pretrained model not found at {yolo_model_path}, will use auto-download.")
 
     # 执行模型训练
     best_model_path = train_model(yolo_model_path, dataset_yaml_path, project_dir, exp_name, dataset_name, epochs=3)
@@ -126,4 +130,4 @@ for model_path, model_filename in trained_models:
     for image_path in all_image_paths:
         run_predict_sahi_after_training(model_path, image_path)
 
-logger.info("\n所有训练任务和预测任务已完成！")
+logger.info("所有训练任务和预测任务已完成！")

@@ -45,10 +45,10 @@ def train_model(model_path, dataset_yaml_path, project_dir, exp_name, dataset_na
         save_period=-1,                           # 仅在最后保存检查点
         pretrained=True,                          # 从预训练模型开始训练。可以是一个布尔值，也可以是加载权重的特定模型的字符串路径。增强训练效率和模型性能。
         
-        # ========== 训练优化参数 ==========
-        amp=True,                                 # 开启混合精度训练，某些显卡不需要
-        cache=True,                               # 将数据集缓存到内存中 🚀
-        compile=True,                             # 开启内核编译加速
+        # # ========== 训练优化参数 ==========
+        # amp=True,                                 # 开启混合精度训练，某些显卡不需要
+        # cache=True,                               # 将数据集缓存到内存中 🚀
+        # compile=True,                             # 开启内核编译加速
         
         # ========== 关键修改3：调整数据增强策略 ==========
         # OBB任务对旋转敏感，需要谨慎调整旋转增强
@@ -117,7 +117,7 @@ def train_model(model_path, dataset_yaml_path, project_dir, exp_name, dataset_na
             logger.error(f"Could not find trained model at expected location: {actual_project_dir}")
             return None
     
-    logger.info(f"Finished training for: {model_path.name}")
+    logger.info(f"Finished training for: {Path(model_path).name}")
     logger.info(f"Results saved in: {actual_project_dir}")
     
     return best_model_path
