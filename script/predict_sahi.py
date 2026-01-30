@@ -66,7 +66,7 @@ def start_predict(model_path, image_path, dataset_name=None, output_dir=None):
     # 从输入图像文件名生成输出文件名
     input_filename = os.path.basename(image_path)
     input_name, input_ext = os.path.splitext(input_filename)
-    output_filename = f"obb_result_{input_name}_{model_name}"
+    output_filename = f"{input_name}_sahi"
     output_path = model_dataset_dir / output_filename
 
     logger.info(f"模型名称: {model_name}")

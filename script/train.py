@@ -22,7 +22,7 @@ models_to_train = [
 ]
 
 # [配置项] 数据集名称 (datasets 目录下的文件夹名)
-dataset_name = "fixed_tiled_dataset_1"
+dataset_name = "booth_seg"
 
 # [配置项] 实验/轮次名称 (用于区分同一模型的不同训练配置)
 exp_name = 'booth_obb_v1'
