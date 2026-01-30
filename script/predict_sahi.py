@@ -115,6 +115,7 @@ def start_predict(model_path, image_path, dataset_name=None, output_dir=None):
             "name": prediction.category.name,
             "class": prediction.category.id,
             "confidence": float(prediction.score.value),
+            "bbox": prediction.bbox.to_xyxy().tolist(),
             "poly": prediction.mask.segmentation[0]  #  OBB 任务，尝试获取多边形点 (Segmentation/OBB)，这将捕获物体的实际形状
         })
 
