@@ -13,7 +13,7 @@ from train import train_model, get_model_path, update_dataset_path
 from predict_sahi import start_predict
 
 # 获取项目logger
-logger = get_project_logger('all')
+logger = get_project_logger('train_predict_pipeline')
 
 # ==================== 1. 自动化配置提取 ====================
 # [配置项] 待训练的模型列表
