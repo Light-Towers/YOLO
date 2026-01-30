@@ -43,7 +43,7 @@ def start_predict(model_path, image_path, output_dir=None):
     if output_dir is not None:
         base_output_dir = Path(output_dir)
     else:
-        base_output_dir = project_dir / "output_results"
+        base_output_dir = project_dir / "output/output_results"
     
     obb_result_dir = base_output_dir / "mix_booth_obb_result"
     version_output_dir = obb_result_dir / f"{model_name}_src640"

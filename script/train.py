@@ -133,11 +133,11 @@ for model_filename in models_to_train:
         logger.error(f"Pretrained model not found at {yolo_model_path}. Skipping...")
         continue
 
-    # 定义简化的输出路径: output_results/models/{model_name}/{exp_name}/
+    # 定义简化的输出路径: output/models/{model_name}/{exp_name}/
     # 去掉 .pt 后缀作为文件夹名
     model_folder_name = Path(model_filename).stem
-    train_save_dir = project_dir / 'output_results' / 'models' / model_folder_name
-    
+    train_save_dir = project_dir / 'output' / 'models' / model_folder_name
+
     # 加载模型
     model = YOLO(str(yolo_model_path))
 
