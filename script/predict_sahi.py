@@ -129,8 +129,12 @@ def start_predict(model_path, image_path, dataset_name=None, output_dir=None):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run SAHI prediction with given model and image')
-    parser.add_argument('--model_path', type=str, help='Path to the trained model', required=True)
-    parser.add_argument('--image_path', type=str, help='Path to the image to predict', required=True)
+    parser.add_argument('--model_path', type=str, help='Path to the trained model', 
+                        default='D:/Study/github/YOLO/models/train/booth_obb_v13/weights/best.pt',
+                        required=False)
+    parser.add_argument('--image_path', type=str, help='Path to the image to predict', 
+                        default='D:/Study/github/YOLO/images/第十一届世界猪业博览会.jpeg',
+                        required=False)
     parser.add_argument('--dataset_name', type=str, help='Dataset name to organize outputs', default=None)
     parser.add_argument('--output_dir', type=str, help='Directory to save prediction results', default=None)
     args = parser.parse_args()
