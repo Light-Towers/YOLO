@@ -2,6 +2,10 @@ from ultralytics import YOLO
 import cv2
 import numpy as np
 import os
+from log_config import get_project_logger
+
+# 获取项目logger
+logger = get_project_logger('predict_obb')
 
 # 配置参数
 model_path = "/home/aistudio/YOLO/models/train/booth_obb_mix_booth_obb_v12/weights/best.pt"
@@ -17,7 +21,7 @@ input_filename = os.path.basename(source_image_path)
 input_name, input_ext = os.path.splitext(input_filename)
 output_path = os.path.join(output_dir, f"obb_{input_name}{input_ext}")
 
-print(f"使用Ultralytics原生API进行OBB推理...")
+logger.info(f"使用Ultralytics原生API进行OBB推理...")
 
 # 1. 加载OBB模型（关键：指定task='obb'）
 model = YOLO(model_path, task='obb')
@@ -47,7 +51,7 @@ for result_idx, r in enumerate(results):
         obb_boxes = r.obb.xyxyxyxy.cpu().numpy()
         confidences = r.obb.conf.cpu().numpy()
         
-        print(f"找到 {len(obb_boxes)} 个旋转框")
+        logger.info(f"找到 {len(obb_boxes)} 个旋转框")
         
         for i, (box, conf) in enumerate(zip(obb_boxes, confidences)):
             # box是4个点，每个点有(x, y)坐标
@@ -81,23 +85,23 @@ for result_idx, r in enumerate(results):
 
 # 4. 保存结果
 cv2.imwrite(output_path, img)
-print(f"\n检测完成！共检测到 {len(all_predictions)} 个旋转框。")
-print(f"结果已保存: {output_path}")
+logger.info(f"\n检测完成！共检测到 {len(all_predictions)} 个旋转框。")
+logger.info(f"结果已保存: {output_path}")
 
 # 5. 输出详细信息
 if all_predictions:
-    print("\n旋转框详细信息（前5个）:")
+    logger.info("\n旋转框详细信息（前5个）:")
     for pred in all_predictions[:5]:
         points = pred['points']
-        print(f"  物体 {pred['id']}:")
-        print(f"    置信度: {pred['confidence']:.3f}")
-        print(f"    顶点坐标:")
+        logger.info(f"  物体 {pred['id']}:")
+        logger.info(f"    置信度: {pred['confidence']:.3f}")
+        logger.info(f"    顶点坐标:")
         for j, pt in enumerate(points):
-            print(f"      点{j+1}: ({pt[0]}, {pt[1]})")
-        print(f"    水平外接框: ({pred['bbox'][0]}, {pred['bbox'][1]}, {pred['bbox'][2]}, {pred['bbox'][3]})")
+            logger.info(f"      点{j+1}: ({pt[0]}, {pt[1]})")
+        logger.info(f"    水平外接框: ({pred['bbox'][0]}, {pred['bbox'][1]}, {pred['bbox'][2]}, {pred['bbox'][3]})")
 else:
-    print("警告：未检测到任何旋转框！")
-    print("可能原因：")
-    print("  1. 置信度阈值过高（当前conf=0.25）")
-    print("  2. 模型训练不充分")
-    print("  3. 图片中确实没有展位")
+    logger.warning("警告：未检测到任何旋转框！")
+    logger.info("可能原因：")
+    logger.info("  1. 置信度阈值过高（当前conf=0.25）")
+    logger.info("  2. 模型训练不充分")
+    logger.info("  3. 图片中确实没有展位")

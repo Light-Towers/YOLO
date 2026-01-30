@@ -1,6 +1,10 @@
 import cv2
 import os
 import numpy as np
+from log_config import get_project_logger
+
+# 获取项目logger
+logger = get_project_logger('slice_image')
 
 def slice_image(image_path, output_dir, tile_size=1024, overlap_ratio=0.2):
     """
@@ -15,7 +19,7 @@ def slice_image(image_path, output_dir, tile_size=1024, overlap_ratio=0.2):
     # 1. 读取图片
     img = cv2.imread(image_path)
     if img is None:
-        print(f"错误：无法读取图片 {image_path}")
+        logger.error(f"错误：无法读取图片 {image_path}")
         return
     height, width = img.shape[:2]
 
@@ -50,7 +54,7 @@ def slice_image(image_path, output_dir, tile_size=1024, overlap_ratio=0.2):
             cv2.imwrite(output_path, tile)
             count += 1
 
-    print(f"切割完成！共生成 {count} 个图块，保存在 {output_dir}")
+    logger.info(f"切割完成！共生成 {count} 个图块，保存在 {output_dir}")
 
 # ==== 使用示例 ====
 # 请修改以下路径和参数

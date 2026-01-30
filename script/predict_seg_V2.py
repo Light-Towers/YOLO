@@ -5,6 +5,7 @@ import json
 import numpy as np
 from pathlib import Path
 import pickle
+from log_config import get_project_logger
 
 class BoothSegmentationPredictor:
     def __init__(self, model_path=None, output_dir=None):
@@ -19,8 +20,11 @@ class BoothSegmentationPredictor:
         # 项目根目录（假设脚本在script/目录下）
         self.project_root = self.script_dir.parent
         
-        print(f"脚本目录: {self.script_dir}")
-        print(f"项目根目录: {self.project_root}")
+        # 获取logger
+        self.logger = get_project_logger('predict_seg_V2')
+        
+        self.logger.info(f"脚本目录: {self.script_dir}")
+        self.logger.info(f"项目根目录: {self.project_root}")
         
         # 设置默认模型路径（基于项目结构）
         if model_path is None:
@@ -46,10 +50,10 @@ class BoothSegmentationPredictor:
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
         # 加载模型
-        print(f"正在加载模型: {self.model_path}")
+        self.logger.info(f"正在加载模型: {self.model_path}")
         if not Path(self.model_path).exists():
-            print(f"错误: 模型文件不存在: {self.model_path}")
-            print("可用模型文件:")
+            self.logger.error(f"错误: 模型文件不存在: {self.model_path}")
+            self.logger.info("可用模型文件:")
             models_dir = self.project_root / "models" / "train"
             if models_dir.exists():
                 for model_folder in models_dir.iterdir():
@@ -57,11 +61,11 @@ class BoothSegmentationPredictor:
                         weights_dir = model_folder / "weights"
                         if weights_dir.exists():
                             for weight_file in weights_dir.glob("*.pt"):
-                                print(f"  - {weight_file.relative_to(self.project_root)}")
+                                self.logger.info(f"  - {weight_file.relative_to(self.project_root)}")
             return
         
         self.model = YOLO(self.model_path)
-        print("模型加载完成")
+        self.logger.info("模型加载完成")
     
     def predict(self, source_image=None, conf=0.7, iou=0.4, imgsz=None):
         """执行预测并保存结果到文件
@@ -90,13 +94,13 @@ class BoothSegmentationPredictor:
         
         # 检查图像文件是否存在
         if not Path(self.source_image).exists():
-            print(f"错误: 图像文件不存在: {self.source_image}")
-            print("可用图像文件:")
+            self.logger.error(f"错误: 图像文件不存在: {self.source_image}")
+            self.logger.info("可用图像文件:")
             images_dir = self.project_root / "images"
             if images_dir.exists():
                 for img_file in images_dir.iterdir():
                     if img_file.suffix.lower() in ['.jpg', '.jpeg', '.png', '.bmp']:
-                        print(f"  - {img_file.name}")
+                        self.logger.info(f"  - {img_file.name}")
             return None
         
         # 如果未指定imgsz，则自动获取图像尺寸
@@ -106,7 +110,7 @@ class BoothSegmentationPredictor:
                 # 获取原始图像尺寸
                 h, w = img.shape[:2]
                 imgsz = (w, h)  # (宽度, 高度)
-                print(f"图像原始尺寸: {w} x {h}")
+                self.logger.info(f"图像原始尺寸: {w} x {h}")
                 
                 # 自动调整尺寸，保持长宽比
                 max_size = 1280  # 最大尺寸限制，避免显存溢出
@@ -114,13 +118,13 @@ class BoothSegmentationPredictor:
                     scale = max_size / max(w, h)
                     new_w, new_h = int(w * scale), int(h * scale)
                     imgsz = (new_w, new_h)
-                    print(f"自动调整尺寸至: {new_w} x {new_h}")
+                    self.logger.info(f"自动调整尺寸至: {new_w} x {new_h}")
             else:
                 imgsz = (640, 640)
-                print(f"使用默认尺寸: {imgsz}")
+                self.logger.info(f"使用默认尺寸: {imgsz}")
         
-        print(f"正在对图像进行预测: {Path(self.source_image).name}")
-        print(f"使用图像尺寸: {imgsz}")
+        self.logger.info(f"正在对图像进行预测: {Path(self.source_image).name}")
+        self.logger.info(f"使用图像尺寸: {imgsz}")
         
         # 执行预测
         try:
@@ -137,8 +141,8 @@ class BoothSegmentationPredictor:
                 verbose=False  # 减少控制台输出
             )
         except Exception as e:
-            print(f"预测过程中出错: {e}")
-            print("尝试调整图像尺寸...")
+            self.logger.error(f"预测过程中出错: {e}")
+            self.logger.info("尝试调整图像尺寸...")
             # 尝试使用较小尺寸
             results = self.model.predict(
                 source=self.source_image,
@@ -208,7 +212,7 @@ class BoothSegmentationPredictor:
                 
                 result_data["masks"].append(mask_polygons)
         
-        print(f"检测到 {result_data['num_detections']} 个展位")
+        self.logger.info(f"检测到 {result_data['num_detections']} 个展位")
         return result_data
     
     def _save_results(self, result_data):
@@ -246,10 +250,10 @@ class BoothSegmentationPredictor:
             for i, (box, conf) in enumerate(zip(result_data['boxes'], result_data['confidences'])):
                 f.write(f"检测框 {i+1}: 坐标 {box}, 置信度 {conf:.4f}\n")
         
-        print(f"预测结果已保存到:")
-        print(f"  JSON文件: {json_file.relative_to(self.project_root)}")
-        print(f"  Pickle文件: {pkl_file.relative_to(self.project_root)}")
-        print(f"  文本摘要: {txt_file.relative_to(self.project_root)}")
+        self.logger.info(f"预测结果已保存到:")
+        self.logger.info(f"  JSON文件: {json_file.relative_to(self.project_root)}")
+        self.logger.info(f"  Pickle文件: {pkl_file.relative_to(self.project_root)}")
+        self.logger.info(f"  文本摘要: {txt_file.relative_to(self.project_root)}")
         
         return str(json_file)
     
@@ -281,7 +285,7 @@ class BoothSegmentationPredictor:
         if result_file is None:
             results_dir = self.output_dir / "results_data"
             if not results_dir.exists():
-                print(f"错误: 结果目录不存在: {results_dir}")
+                self.logger.error(f"错误: 结果目录不存在: {results_dir}")
                 return None
             
             # 如果指定了图像名称，查找对应的结果文件
@@ -290,19 +294,19 @@ class BoothSegmentationPredictor:
                 if json_file.exists():
                     result_file = str(json_file)
                 else:
-                    print(f"未找到图像 {image_name} 的结果文件")
+                    self.logger.info(f"未找到图像 {image_name} 的结果文件")
                     return None
             else:
                 # 查找最新的结果文件
                 json_files = list(results_dir.glob("*_results.json"))
                 if not json_files:
-                    print("未找到任何结果文件")
+                    self.logger.info("未找到任何结果文件")
                     return None
                 
                 # 按修改时间排序，获取最新的文件
                 latest_file = max(json_files, key=lambda x: x.stat().st_mtime)
                 result_file = str(latest_file)
-                print(f"使用最新的结果文件: {latest_file.name}")
+                self.logger.info(f"使用最新的结果文件: {latest_file.name}")
         
         # 加载预测结果
         result_file = Path(result_file)
@@ -312,7 +316,7 @@ class BoothSegmentationPredictor:
                 result_file = self.project_root / result_file
             
             if not result_file.exists():
-                print(f"错误: 结果文件不存在: {result_file}")
+                self.logger.error(f"错误: 结果文件不存在: {result_file}")
                 return None
         
         if result_file.suffix == '.json':
@@ -328,10 +332,10 @@ class BoothSegmentationPredictor:
         image_path = result_data["image_path"]
         img = cv2.imread(image_path)
         if img is None:
-            print(f"无法读取图像: {image_path}")
+            self.logger.error(f"无法读取图像: {image_path}")
             return None
         
-        print(f"正在绘制预测结果到图像: {Path(image_path).name}")
+        self.logger.info(f"正在绘制预测结果到图像: {Path(image_path).name}")
         
         # 绘制边界框
         if draw_boxes and result_data["boxes"]:
@@ -379,7 +383,7 @@ class BoothSegmentationPredictor:
                 output_image_path = self.project_root / output_image_path
         
         cv2.imwrite(str(output_image_path), img)
-        print(f"绘制完成，图像保存至: {output_image_path.relative_to(self.project_root)}")
+        self.logger.info(f"绘制完成，图像保存至: {output_image_path.relative_to(self.project_root)}")
         
         return img
 
@@ -387,16 +391,16 @@ class BoothSegmentationPredictor:
         """列出可用的测试图像"""
         images_dir = self.project_root / "images"
         if not images_dir.exists():
-            print(f"图像目录不存在: {images_dir}")
+            self.logger.info(f"图像目录不存在: {images_dir}")
             return []
         
         image_files = []
         for ext in ['*.jpg', '*.jpeg', '*.png', '*.bmp']:
             image_files.extend(images_dir.glob(ext))
         
-        print("可用测试图像:")
+        self.logger.info("可用测试图像:")
         for i, img_file in enumerate(sorted(image_files)):
-            print(f"  {i+1}. {img_file.name}")
+            self.logger.info(f"  {i+1}. {img_file.name}")
         
         return image_files
 
@@ -433,33 +437,36 @@ def visualize_single_detection(result_file, detection_idx=0, output_dir=None):
         
         output_path = output_dir / f"detection_{detection_idx}_{Path(result_data['image_name']).stem}.jpg"
         cv2.imwrite(str(output_path), img)
-        print(f"单个检测结果保存至: {output_path.relative_to(Path(__file__).parent.parent)}")
+        logger = get_project_logger('predict_seg_V2_utils')
+        logger.info(f"单个检测结果保存至: {output_path.relative_to(Path(__file__).parent.parent)}")
         
         # 打印详细信息
-        print(f"检测框 {detection_idx}:")
-        print(f"  坐标: [{x1}, {y1}, {x2}, {y2}]")
-        print(f"  置信度: {result_data['confidences'][detection_idx]:.4f}")
+        logger.info(f"检测框 {detection_idx}:")
+        logger.info(f"  坐标: [{x1}, {y1}, {x2}, {y2}]")
+        logger.info(f"  置信度: {result_data['confidences'][detection_idx]:.4f}")
         
         return img
     else:
-        print(f"错误: 检测索引 {detection_idx} 超出范围 (总共 {len(result_data['boxes'])} 个检测)")
+        logger = get_project_logger('predict_seg_V2_utils')
+        logger.error(f"错误: 检测索引 {detection_idx} 超出范围 (总共 {len(result_data['boxes'])} 个检测)")
         return None
 
 def analyze_results_statistics(result_file):
     """分析预测结果的统计信息"""
     result_data = load_results(result_file)
     
-    print("=" * 50)
-    print("预测结果统计信息")
-    print("=" * 50)
-    print(f"图像: {result_data['image_name']}")
-    print(f"检测数量: {result_data['num_detections']}")
+    logger = get_project_logger('predict_seg_V2_utils')
+    logger.info("=" * 50)
+    logger.info("预测结果统计信息")
+    logger.info("=" * 50)
+    logger.info(f"图像: {result_data['image_name']}")
+    logger.info(f"检测数量: {result_data['num_detections']}")
     
     if result_data['num_detections'] > 0:
         confidences = result_data['confidences']
-        print(f"平均置信度: {np.mean(confidences):.4f}")
-        print(f"最高置信度: {np.max(confidences):.4f}")
-        print(f"最低置信度: {np.min(confidences):.4f}")
+        logger.info(f"平均置信度: {np.mean(confidences):.4f}")
+        logger.info(f"最高置信度: {np.max(confidences):.4f}")
+        logger.info(f"最低置信度: {np.min(confidences):.4f}")
         
         # 统计边界框大小
         boxes = np.array(result_data['boxes'])
@@ -467,10 +474,10 @@ def analyze_results_statistics(result_file):
         heights = boxes[:, 3] - boxes[:, 1]
         areas = widths * heights
         
-        print(f"平均边界框大小: {np.mean(widths):.1f} x {np.mean(heights):.1f}")
-        print(f"平均面积: {np.mean(areas):.1f} 像素")
-        print(f"最大边界框: {np.max(widths):.1f} x {np.max(heights):.1f}")
-        print(f"最小边界框: {np.min(widths):.1f} x {np.min(heights):.1f}")
+        logger.info(f"平均边界框大小: {np.mean(widths):.1f} x {np.mean(heights):.1f}")
+        logger.info(f"平均面积: {np.mean(areas):.1f} 像素")
+        logger.info(f"最大边界框: {np.max(widths):.1f} x {np.max(heights):.1f}")
+        logger.info(f"最小边界框: {np.min(widths):.1f} x {np.min(heights):.1f}")
     
     return result_data
 
@@ -558,7 +565,7 @@ def main():
         # 分析结果统计
         analyze_results_statistics(result_file)
         
-        print("\n🎉 预测完成！所有结果已保存到 output_results/ 目录")
+        predictor.logger.info("\n🎉 预测完成！所有结果已保存到 output_results/ 目录")
 
 if __name__ == "__main__":
     main()

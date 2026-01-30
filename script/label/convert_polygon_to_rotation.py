@@ -3,6 +3,10 @@ import numpy as np
 import json
 import os
 import shutil
+from log_config import get_project_logger
+
+# 获取项目logger
+logger = get_project_logger('label.convert_polygon_to_rotation')
 
 # ==================== 功能1: 多边形(Polygon)转旋转框(Rotation) ====================
 def convert_polygon_to_rotation(input_folder, output_folder):
@@ -10,7 +14,7 @@ def convert_polygon_to_rotation(input_folder, output_folder):
     将指定文件夹中所有JSON文件里的多边形(polygon)标注转换为旋转框(rotation)标注。
     """
     os.makedirs(output_folder, exist_ok=True)
-    print(f"开始转换多边形 -> 旋转框: {input_folder} -> {output_folder}")
+    logger.info(f"开始转换多边形 -> 旋转框: {input_folder} -> {output_folder}")
 
     for filename in os.listdir(input_folder):
         if not filename.endswith('.json'):
@@ -54,9 +58,9 @@ def convert_polygon_to_rotation(input_folder, output_folder):
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
-        print(f"  已处理: {filename}")
+        logger.info(f"  已处理: {filename}")
 
-    print(f"✓ 多边形转换完成！结果保存在: {output_folder}\n")
+    logger.info(f"✓ 多边形转换完成！结果保存在: {output_folder}\n")
 
 # ==================== 功能2: 旋转框角度清零 (设为0度) ====================
 def zero_rotation_angles(input_folder, output_folder):
@@ -64,7 +68,7 @@ def zero_rotation_angles(input_folder, output_folder):
     将指定文件夹中所有JSON文件里的旋转框(rotation)标注的角度(direction)设置为0。
     """
     os.makedirs(output_folder, exist_ok=True)
-    print(f"开始清零旋转框角度: {input_folder} -> {output_folder}")
+    logger.info(f"开始清零旋转框角度: {input_folder} -> {output_folder}")
 
     for filename in os.listdir(input_folder):
         if not filename.endswith('.json'):
@@ -85,9 +89,9 @@ def zero_rotation_angles(input_folder, output_folder):
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
-        print(f"  已处理: {filename} (修改了 {modified_count} 个旋转框)")
+        logger.info(f"  已处理: {filename} (修改了 {modified_count} 个旋转框)")
 
-    print(f"✓ 角度清零完成！结果保存在: {output_folder}\n")
+    logger.info(f"✓ 角度清零完成！结果保存在: {output_folder}\n")
 
 # ==================== 功能3: 转换为水平矩形 ====================
 def convert_to_horizontal_rect(input_folder, output_folder):
@@ -95,7 +99,7 @@ def convert_to_horizontal_rect(input_folder, output_folder):
     将旋转框转换为真正的水平矩形（修改顶点和角度）。
     """
     os.makedirs(output_folder, exist_ok=True)
-    print(f"开始转换为水平矩形: {input_folder} -> {output_folder}")
+    logger.info(f"开始转换为水平矩形: {input_folder} -> {output_folder}")
 
     for filename in os.listdir(input_folder):
         if not filename.endswith('.json'):
@@ -125,9 +129,9 @@ def convert_to_horizontal_rect(input_folder, output_folder):
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
-        print(f"  已处理: {filename}")
+        logger.info(f"  已处理: {filename}")
 
-    print(f"✓ 水平矩形转换完成！结果保存在: {output_folder}\n")
+    logger.info(f"✓ 水平矩形转换完成！结果保存在: {output_folder}\n")
 
 # ==================== 主执行流程 ====================
 if __name__ == "__main__":
@@ -154,4 +158,4 @@ if __name__ == "__main__":
     # 或者，如果你只想清零角度但保持顶点不变：
     # zero_rotation_angles(rotation_folder, zero_angle_folder)
     
-    print("请根据需求取消注释上面的相应函数调用。")
+    logger.info("请根据需求取消注释上面的相应函数调用。")

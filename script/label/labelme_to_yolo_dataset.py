@@ -7,6 +7,11 @@ import cv2
 import numpy as np
 from pathlib import Path
 from collections import Counter
+import sys
+from log_config import get_project_logger
+
+# 获取项目logger
+logger = get_project_logger('label.labelme_to_yolo_dataset')
 
 def batch_refine_labelme_json(folder_path):
     # 支持的后缀名
@@ -47,13 +52,13 @@ def batch_refine_labelme_json(folder_path):
                 if modified:
                     with open(json_path, 'w', encoding='utf-8') as f:
                         json.dump(data, f, ensure_ascii=False, indent=2)
-                    print(f"已修正并覆盖: {file_name}")
+                    logger.info(f"已修正并覆盖: {file_name}")
                     count += 1
                     
             except Exception as e:
-                print(f"处理文件 {file_name} 时出错: {e}")
+                logger.error(f"处理文件 {file_name} 时出错: {e}")
 
-    print(f"\n处理完成！共修正了 {count} 个文件。")
+    logger.info(f"\n处理完成！共修正了 {count} 个文件。")
 
 
 
@@ -153,7 +158,7 @@ def start_conversion(input_dir, output_root, class_list, ratio=0.8):
             img_target_dir = os.path.join(output_root, 'images', mode)
             copy_matched_image(json_path, data.get('imagePath', ''), img_target_dir)
 
-    print("转换及分发完成！")
+    logger.info("转换及分发完成！")
 
 # --- 运行处 ---
 if __name__ == "__main__":

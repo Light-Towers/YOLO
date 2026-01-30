@@ -1,6 +1,10 @@
 import os
 import shutil
 import random
+from log_config import get_project_logger
+
+# 获取项目logger
+logger = get_project_logger('label.split_file')
 
 def split_dataset_fixed(input_dir, output_dir, train_ratio=0.8, seed=42):
     """
@@ -38,12 +42,12 @@ def split_dataset_fixed(input_dir, output_dir, train_ratio=0.8, seed=42):
             if os.path.exists(txt_path):
                 image_files.append((file, base_name, txt_file))
             else:
-                print(f"警告: {file} 没有对应的标签文件，已跳过")
+                logger.warning(f"警告: {file} 没有对应的标签文件，已跳过")
     
-    print(f"找到 {len(image_files)} 对有效数据（图片+标签）")
+    logger.info(f"找到 {len(image_files)} 对有效数据（图片+标签）")
     
     if len(image_files) == 0:
-        print("错误：没有找到有效的数据文件！")
+        logger.error("错误：没有找到有效的数据文件！")
         return
     
     # 固定随机打乱
@@ -54,9 +58,9 @@ def split_dataset_fixed(input_dir, output_dir, train_ratio=0.8, seed=42):
     train_files = image_files[:split_idx]
     val_files = image_files[split_idx:]
     
-    print(f"\n分割结果（随机种子={seed}）:")
-    print(f"训练集: {len(train_files)} 个文件")
-    print(f"验证集: {len(val_files)} 个文件")
+    logger.info(f"\n分割结果（随机种子={seed}）:")
+    logger.info(f"训练集: {len(train_files)} 个文件")
+    logger.info(f"验证集: {len(val_files)} 个文件")
     
     # 复制训练集
     for img_file, base_name, txt_file in train_files:
@@ -86,7 +90,7 @@ def split_dataset_fixed(input_dir, output_dir, train_ratio=0.8, seed=42):
             os.path.join(val_label_dir, txt_file)
         )
     
-    print(f"\n完成！文件已保存到: {output_dir}")
+    logger.info(f"\n完成！文件已保存到: {output_dir}")
     
 
 # 简单用法示例

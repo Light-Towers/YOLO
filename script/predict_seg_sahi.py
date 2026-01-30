@@ -2,6 +2,10 @@ from sahi import AutoDetectionModel
 from sahi.predict import get_sliced_prediction
 import cv2,os
 import numpy as np
+from log_config import get_project_logger
+
+# 获取项目logger
+logger = get_project_logger('predict_seg_sahi')
 
 # 1. 配置参数
 model_path = "/home/aistudio/YOLO/models/train/booth_seg_v17/weights/best.pt"
@@ -20,7 +24,7 @@ detection_model = AutoDetectionModel.from_pretrained(
     device="cuda:0", 
 )
 
-print("正在进行切片推理，请稍候...")
+logger.info("正在进行切片推理，请稍候...")
 
 # 3. 执行切片推理 
 # 这会自动把大图切成 640x640 的小块进行预测，然后合并结果
@@ -37,7 +41,7 @@ result = get_sliced_prediction(
     postprocess_match_threshold=0.4, # 降低这个值会合并更多重叠框（如果框重叠30%就合并）
 )
 
-print(f"检测完成！共检测到 {len(result.object_prediction_list)} 个物体。")
+logger.info(f"检测完成！共检测到 {len(result.object_prediction_list)} 个物体。")
 
 # 4. 绘制结果：准备两张画布 (使用 OpenCV 手动绘制，模仿你之前的逻辑)
 img_original = cv2.imread(source_image_path)
@@ -96,7 +100,7 @@ for i, prediction in enumerate(object_prediction_list):
             cv2.putText(img_mask_rectangle, f"{i}", (text_x, text_y), 
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
         else:
-            print(f"物体 [{i}] 的最大轮廓面积仅为 {main_area:.2f}，已被作为噪点过滤")
+            logger.info(f"物体 [{i}] 的最大轮廓面积仅为 {main_area:.2f}，已被作为噪点过滤")
         
         
         
@@ -106,22 +110,22 @@ for i, prediction in enumerate(object_prediction_list):
             
         #     if area < 400:
         #         # 打印物体索引 i 和 轮廓索引 j
-        #         print(f"已过滤噪点：物体 [{i}] 的第 ({j}) 个轮廓面积仅为 {area:.2f}")
+        #         logger.info(f"已过滤噪点：物体 [{i}] 的第 ({j}) 个轮廓面积仅为 {area:.2f}")
         #         continue
-                
+        #         
         #     # 提取最小外接矩形
         #     rect = cv2.minAreaRect(cnt)     # rect 的结构: ((x, y), (w, h), angle)
         #     box = cv2.boxPoints(rect)       # 获取矩形的四个顶点坐标
         #     box = box.astype(int)           # 转换为整数像素坐标
-            
+        #
         #     # 绘制到第二张图上
         #     cv2.drawContours(img_mask_rectangle, [box], 0, (0, 0, 255), 2)
-            
+        #     
         #     # 在图上绘制编号
         #     ## 计算写字的位置（取矩形四个顶点的左上角，并稍微偏移一点）
         #     ## 或者直接使用 rect[0] (中心点)
         #     text_x, text_y = box[0][0], box[0][1] - 10
-            
+        #
         #     ## 参数：图片, 文本, 位置, 字体, 缩放, 颜色(蓝色), 厚度
         #     cv2.putText(img_mask_rectangle, f"{i}", (text_x, text_y), 
         #                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
@@ -146,7 +150,7 @@ for i, prediction in enumerate(object_prediction_list):
 
     # 进度提示：每处理 200 个物体打印一次，防止程序看起来像卡死
     if (i + 1) % 200 == 0:
-        print(f"已处理 {i + 1} / {len(object_prediction_list)} 个物体...")
+        logger.info(f"已处理 {i + 1} / {len(object_prediction_list)} 个物体...")
 
 
 # 5. 自动生成输出路径并保存
@@ -157,6 +161,6 @@ rect_output_path = f"{base_name}_mask_rectangle{ext}"
 cv2.imwrite(mask_output_path, img_mask)
 cv2.imwrite(rect_output_path, img_mask_rectangle)
 
-print("-" * 30)
-print(f"原始掩码图已保存: {mask_output_path}")
-print(f"规整矩形图已保存: {rect_output_path}")
+logger.info("-" * 30)
+logger.info(f"原始掩码图已保存: {mask_output_path}")
+logger.info(f"规整矩形图已保存: {rect_output_path}")

@@ -4,6 +4,10 @@ from pathlib import Path
 import yaml
 import re
 import torch
+from log_config import get_project_logger
+
+# 获取项目logger
+logger = get_project_logger('train')
 
 # ==================== 1. 自动化配置提取 ====================
 # [配置项] 待训练的模型列表
@@ -28,8 +32,8 @@ workers = min(8, (os.cpu_count() or 1) // 2)
 
 # 2. 定义动态基础路径
 project_dir = Path(__file__).resolve().parent.parent
-print(f"Project root directory: {project_dir}")
-print(f"Using device: {device}, workers: {workers}")
+logger.info(f"Project root directory: {project_dir}")
+logger.info(f"Using device: {device}, workers: {workers}")
 
 # 3. 辅助函数
 def get_model_path(filename):
@@ -42,7 +46,7 @@ def get_model_path(filename):
 def update_dataset_path(yaml_path, new_base_path):
     """动态更新 dataset.yaml 中的 path 字段"""
     if not yaml_path.exists():
-        print(f"Warning: {yaml_path} not found!")
+        logger.warning(f"{yaml_path} not found!")
         return
 
     with open(yaml_path, 'r', encoding='utf-8') as f:
@@ -53,7 +57,7 @@ def update_dataset_path(yaml_path, new_base_path):
     
     with open(yaml_path, 'w', encoding='utf-8') as f:
         yaml.safe_dump(data, f, allow_unicode=True)
-    print(f"Updated dataset path in {yaml_path} to: {data['path']}")
+    logger.info(f"Updated dataset path in {yaml_path} to: {data['path']}")
 
 # ==================== 4. 主训练循环 ====================
 
@@ -65,14 +69,14 @@ dataset_yaml_path = dataset_root / 'dataset.yaml'
 update_dataset_path(dataset_yaml_path, dataset_root)
 
 for model_filename in models_to_train:
-    print(f"\n{'='*30}")
-    print(f"Starting training for model: {model_filename}")
-    print(f"{'='*30}")
+    logger.info(f"{'='*50}")
+    logger.info(f"Starting training for model: {model_filename}")
+    logger.info(f"{'='*50}")
 
     # 获取预训练模型绝对路径
     yolo_model_path = get_model_path(model_filename)
     if not yolo_model_path.exists():
-        print(f"Error: Pretrained model not found at {yolo_model_path}. Skipping...")
+        logger.error(f"Pretrained model not found at {yolo_model_path}. Skipping...")
         continue
 
     # 定义简化的输出路径: output_results/models/{model_name}/{exp_name}/
@@ -145,7 +149,7 @@ for model_filename in models_to_train:
         deterministic=True,
     )
 
-    print(f"\nFinished training for: {model_filename}")
-    print(f"Results saved in: {train_save_dir / exp_name}")
+    logger.info(f"Finished training for: {model_filename}")
+    logger.info(f"Results saved in: {train_save_dir / exp_name}")
 
-print("\n所有训练任务已完成！")
+logger.info("\n所有训练任务已完成！")

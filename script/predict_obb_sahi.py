@@ -2,6 +2,10 @@ from sahi import AutoDetectionModel
 from sahi.predict import get_sliced_prediction
 import os
 import json
+from log_config import get_project_logger
+
+# 获取项目logger
+logger = get_project_logger('predict_obb_sahi')
 
 # 1. 配置参数
 # model_path = "/home/aistudio/YOLO/models/train/booth_obb_v4/weights/best.pt"  # 修改为OBB模型路径
@@ -40,9 +44,9 @@ input_name, input_ext = os.path.splitext(input_filename)
 output_filename = f"obb_result_{input_name}_{version}"
 output_path = os.path.join(version_output_dir, output_filename)
 
-print(f"模型版本: {version}")
-print(f"输出目录: {version_output_dir}")
-print(f"输出文件: {output_path}.png")
+logger.info(f"模型版本: {version}")
+logger.info(f"输出目录: {version_output_dir}")
+logger.info(f"输出文件: {output_path}.png")
 
 # 2. 加载模型 (使用 SAHI 的封装器，明确指定任务类型)
 detection_model = AutoDetectionModel.from_pretrained(
@@ -52,7 +56,7 @@ detection_model = AutoDetectionModel.from_pretrained(
     device="cuda:0", 
 )
 
-print("正在进行切片推理，请稍候...")
+logger.info("正在进行切片推理，请稍候...")
 
 # 3. 执行切片推理 
 result = get_sliced_prediction(
@@ -67,7 +71,7 @@ result = get_sliced_prediction(
     postprocess_match_threshold=0.5,  # OBB任务可能需要调整这个值
 )
 
-print(f"检测完成！共检测到 {len(result.object_prediction_list)} 个物体。")
+logger.info(f"检测完成！共检测到 {len(result.object_prediction_list)} 个物体。")
 
 # 4. 导出结果
 result.export_visuals(

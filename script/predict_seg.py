@@ -1,6 +1,10 @@
 from ultralytics import YOLO
 import cv2
 import os
+from log_config import get_project_logger
+
+# 获取项目logger
+logger = get_project_logger('predict_seg')
 
 # 1. 加载预训练模型
 # yolov8x-worldv2.pt  加载 YOLO-World 模型（推荐使用 v8s 或 v8m，权衡速度与精度）
@@ -63,5 +67,5 @@ if results[0].masks is not None:
 # 4. 保存结果
 output_path = "/home/aistudio/YOLO/output_results/red_boxes.jpg"
 cv2.imwrite(output_path, img)
-print(f"红色框标注完成，保存至: {output_path}")
-print(f"检测到 {len(results[0].boxes) if results else 0} 个物体")
+logger.info(f"红色框标注完成，保存至: {output_path}")
+logger.info(f"检测到 {len(results[0].boxes) if results else 0} 个物体")
