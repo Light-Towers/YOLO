@@ -95,58 +95,70 @@ for model_filename in models_to_train:
         epochs=300,                               # 训练轮数
         patience=50,                              # 早停耐心值
         imgsz=640,                                # 输入图像尺寸
-        batch=0.9,                                # 自动分配 GPU 内存
-        device=device,                            # 动态检测设备
-        workers=workers,                          # 动态检测线程
+        batch=0.9,                                # 【3种方式】16：固定方式；-1 自动计算最大可用batch； 0.8：按gpu内存分配
+        device=device,                            # 训练设备（动态检测）
+        workers=workers,                          # 工作线程数（动态检测）
         
         # ========== 项目相关参数 ==========
-        project=str(train_save_dir),              # 输出主目录
-        name=exp_name,                            # 实验子目录名
+        project=str(train_save_dir),              # 指定模型训练输出根目录
+        name=exp_name,                            # 指定实验名称
         save=True,                                # 保存训练结果和模型
         save_period=-1,                           # 仅在最后保存检查点
-        pretrained=True,                          # 从预训练权重开始
+        pretrained=True,                          # 从预训练模型开始训练。可以是一个布尔值，也可以是加载权重的特定模型的字符串路径。增强训练效率和模型性能。
         
         # ========== 训练优化参数 ==========
-        amp=True,                                 # 混合精度训练
-        cache=True,                               # 缓存数据集
-        compile=True,                             # 内核编译加速
+        amp=True,                                 # 开启混合精度训练，某些显卡不需要
+        cache=True,                               # 将数据集缓存到内存中 🚀
+        compile=True,                             # 开启内核编译加速
         
-        # ========== 数据增强策略 (OBB 优化) ==========
-        degrees=15.0,
-        translate=0.1,
-        scale=0.5,
-        shear=0.0,
-        perspective=0.001,
-        flipud=0.0,
-        fliplr=0.5,
-        mosaic=1.0,
-        mixup=0.1,
-        copy_paste=0.0,
+        # ========== 关键修改3：调整数据增强策略 ==========
+        # OBB任务对旋转敏感，需要谨慎调整旋转增强
+        degrees=15.0,      # 【建议调低】展位图通常视角固定，避免过大的旋转
+        translate=0.1,     # 平移增强
+        scale=0.5,         # 缩放增强
+        shear=0.0,         # 【建议关闭】剪切变换可能破坏旋转框的角度信息
+        perspective=0.001, # 透视变换，保持较小的值
+        flipud=0.0,        # 上下翻转【建议关闭】
+        fliplr=0.5,        # 左右翻转可保留
         
-        # ========== OBB 特定参数 ==========
-        overlap_mask=False,
-        single_cls=True,
+        # 马赛克增强相关
+        mosaic=1.0,        # 开启马赛克增强
+        mixup=0.1,         # MixUp增强，不宜过高
+        copy_paste=0.0,    # 【建议关闭】复制粘贴增强可能不适合OBB
+        
+        # ========== 关键修改4：OBB特定参数 ==========
+        # YOLO OBB任务会自动处理旋转框，以下是可能需要关注的参数
+        overlap_mask=False,  # 【注意】OBB任务不需要掩码重叠，应该设为False
+        single_cls=True,     # 如果你的数据集中只有"展位"一个类别，设为True
         
         # ========== 优化器与学习率 ==========
-        optimizer='auto',
-        lr0=0.01,
-        lrf=0.01,
-        momentum=0.937,
-        weight_decay=0.0005,
-        warmup_epochs=3,
-        warmup_momentum=0.8,
-        warmup_bias_lr=0.1,
+        optimizer='auto',    # 自动选择优化器：[SGD, Adam, AdamW, NAdam, RAdam, RMSProp]
+        lr0=0.01,           # 初始学习率
+        lrf=0.01,           # 最终学习率系数 (lr0 * lrf)
+        momentum=0.937,     # 动量
+        weight_decay=0.0005, # 权重衰减
+        warmup_epochs=3,    # 学习率预热轮数，有助于稳定训练初期
+        warmup_momentum=0.8, # 预热期动量
+        warmup_bias_lr=0.1, # 预热期偏置学习率
         
         # ========== 其他调整 ==========
-        dropout=0.0,
-        cos_lr=True,
+        dropout=0.0,        # OBB任务通常不需要，防止小数据集过拟合
+        cos_lr=True,        # 使用余弦退火学习率调度，可能帮助更好收敛
+        # label_smoothing=0.0, # 标签平滑 (弃用)
         
-        # ========== 验证与调试 ==========
-        val=True,
-        plots=True,
-        resume=False,
-        verbose=True,
-        deterministic=True,
+        # ========== 验证相关参数 ==========
+        val=True,           # 在训练期间进行验证
+        plots=True,         # 在训练期间生成并保存图表
+        resume=False,       # 是否从最近的检查点恢复训练
+        
+        # ========== 针对密集小目标的调整 ==========
+        # 如果你的展位密集且较小，可以考虑以下调整
+        # multi_scale=False,  # 多尺度训练（会增加训练时间）
+        # nbs=64,             # 名义批量大小
+        
+        # ========== 调试参数 ==========
+        verbose=True,       # 输出详细信息
+        deterministic=True, # 确保可重复性
     )
 
     logger.info(f"Finished training for: {model_filename}")
