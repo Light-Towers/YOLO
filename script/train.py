@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import yaml
 import re
+import sys
 import torch
 from log_config import get_project_logger
 
@@ -23,6 +24,15 @@ dataset_name = "fixed_tiled_dataset_1"
 
 # [配置项] 实验/轮次名称 (用于区分同一模型的不同训练配置)
 exp_name = 'booth_obb_v1'
+
+# [配置项] 预测图像路径列表 (支持单个或多个图片路径，或图片文件夹路径)
+prediction_images = [
+    "/home/aistudio/YOLO/images/2024年展位图.jpg",
+    # "/home/aistudio/YOLO/images/第十一届世界猪业博览会.jpeg",
+    # "/home/aistudio/YOLO/images/长沙国际会展中心.jpg",
+    # "/home/aistudio/YOLO/images/2020畜博会.png",
+    # "/home/aistudio/YOLO/images/2025年畜牧-展位分布图-1105-01.png"
+]
 
 # [动态检测] 硬件资源
 device = "0" if torch.cuda.is_available() else "cpu"
@@ -59,6 +69,47 @@ def update_dataset_path(yaml_path, new_base_path):
         yaml.safe_dump(data, f, allow_unicode=True)
     logger.info(f"Updated dataset path in {yaml_path} to: {data['path']}")
 
+def get_image_paths(image_sources):
+    """
+    从图片路径列表或文件夹路径列表中获取所有图片路径
+    """
+    image_paths = []
+    for source in image_sources:
+        source_path = Path(source)
+        if source_path.is_file():
+            # 如果是单个文件
+            image_paths.append(str(source_path))
+        elif source_path.is_dir():
+            # 如果是目录，获取目录中所有图片文件
+            extensions = ['*.jpg', '*.jpeg', '*.png', '*.bmp', '*.tiff', '*.tif']
+            for ext in extensions:
+                image_paths.extend([str(p) for p in source_path.glob(ext)])
+                image_paths.extend([str(p) for p in source_path.rglob(f"*.{ext.lstrip('*.')}")])
+        else:
+            logger.warning(f"Image source does not exist: {source}")
+    
+    return sorted(list(set(image_paths)))  # 去重并排序
+
+def run_predict_sahi_after_training(model_path, image_path):
+    """
+    在训练完成后通过调用predict_sahi模块运行预测
+    """
+    try:
+        # 导入predict_sahi模块的start_predict函数
+        from script.predict_sahi import start_predict
+        
+        logger.info(f"Starting prediction for image: {image_path}")
+        
+        # 调用predict_sahi模块的start_predict函数
+        start_predict(model_path, image_path)
+        
+        logger.info("SAHI prediction completed successfully.")
+    except ImportError:
+        logger.error("Could not import predict_sahi module. Make sure predict_sahi.py is in the correct location.")
+    except Exception as e:
+        logger.error(f"Error occurred when calling predict_sahi module: {str(e)}")
+
+
 # ==================== 4. 主训练循环 ====================
 
 # 定位数据集
@@ -67,6 +118,9 @@ dataset_yaml_path = dataset_root / 'dataset.yaml'
 
 # 更新数据集路径配置
 update_dataset_path(dataset_yaml_path, dataset_root)
+
+# 存储所有训练完成的模型路径和名称
+trained_models = []
 
 for model_filename in models_to_train:
     logger.info(f"{'='*50}")
@@ -161,7 +215,27 @@ for model_filename in models_to_train:
         deterministic=True, # 确保可重复性
     )
 
+    # 获取训练后的最佳模型路径
+    best_model_path = train_save_dir / exp_name / 'weights' / 'best.pt'
+    
     logger.info(f"Finished training for: {model_filename}")
     logger.info(f"Results saved in: {train_save_dir / exp_name}")
 
-logger.info("\n所有训练任务已完成！")
+    # 将训练完成的模型路径添加到列表中
+    trained_models.append((best_model_path, model_filename))
+
+# 所有模型训练完成后，统一进行预测
+logger.info("="*50)
+logger.info("All training completed. Starting unified prediction for all models...")
+logger.info("="*50)
+
+# 获取所有图片路径
+all_image_paths = get_image_paths(prediction_images)
+logger.info(f"Found {len(all_image_paths)} images to predict")
+
+for model_path, model_filename in trained_models:
+    logger.info(f"Running prediction for model: {model_filename}")
+    for image_path in all_image_paths:
+        run_predict_sahi_after_training(model_path, image_path)
+
+logger.info("\n所有训练任务和预测任务已完成！")
