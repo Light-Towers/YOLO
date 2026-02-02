@@ -4,7 +4,6 @@ import os
 import json
 import torch
 from log_config import get_project_logger
-import argparse
 from pathlib import Path
 
 # 获取项目logger
@@ -88,8 +87,8 @@ def start_predict(model_path, image_path, dataset_name=None, output_dir=None):
     result = get_sliced_prediction(
         image_path,
         detection_model,
-        slice_height=1024,           # 切片高度
-        slice_width=1024,            # 切片宽度
+        slice_height=1280,           # 切片高度
+        slice_width=1280,            # 切片宽度
         overlap_height_ratio=0.5,  # 高度重叠率
         overlap_width_ratio=0.5,   # 宽度重叠率
         postprocess_type="NMS",     # 合并算法
@@ -131,15 +130,10 @@ if __name__ == "__main__":
     # 定义项目根目录：假设 script 在 project_root/script 下
     project_root = Path(__file__).resolve().parent.parent
 
-    parser = argparse.ArgumentParser(description='Run SAHI prediction with given model and image')
-    parser.add_argument('--model_path', type=str, help='Path to the trained model',
-                        default=str(project_root / 'models' / 'train' / 'booth_obb_v13' / 'weights' / 'best.pt'),
-                        required=False)
-    parser.add_argument('--image_path', type=str, help='Path to the image to predict',
-                        default=str(project_root / 'images' / '第十一届世界猪业博览会.jpeg'),
-                        required=False)
-    parser.add_argument('--dataset_name', type=str, help='Dataset name to organize outputs', default=None)
-    parser.add_argument('--output_dir', type=str, help='Directory to save prediction results', default=None)
-    args = parser.parse_args()
-    
-    start_predict(args.model_path, args.image_path, args.dataset_name, args.output_dir)
+    # 直接在代码中定义参数值，而不是使用argparse
+    model_path = str(project_root / 'models' / 'train' / 'booth_obb_v13' / 'weights' / 'best.pt')
+    image_path = str(project_root / 'original_images' / '11-ZhuYe.jpeg')
+    dataset_name = None  # 使用None以让函数自动推断
+    output_dir = None    # 使用None以使用默认输出目录
+
+    start_predict(model_path, image_path, dataset_name, output_dir)

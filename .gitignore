@@ -30,3 +30,6 @@ models/
 yolo*.pt
 *.cache
 .cloudbase/
+datasets/
+output/
+logs/
