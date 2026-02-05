@@ -4,7 +4,6 @@ from pathlib import Path
 import yaml
 import re
 import torch
-import argparse
 import sys
 from log_config import get_project_logger
 
@@ -147,47 +146,34 @@ def update_dataset_path(yaml_path, new_base_path):
         yaml.safe_dump(data, f, allow_unicode=True)
     logger.info(f"Updated dataset path in {yaml_path} to: {data['path']}")
 
-def parse_args():
-    """
-    解析命令行参数
-    """
-    parser = argparse.ArgumentParser(description='YOLO 模型训练脚本')
-    
-    # 将必需参数改为可选参数，并设置默认值
-    parser.add_argument('--model', type=str, default='yolov8s-obb.pt',
-                       help='模型文件名 (如: yolov8s-obb.pt)，如果本地不存在会自动下载)')
-    parser.add_argument('--dataset', type=str, default='fixed_tiled_dataset_1',
-                       help='数据集名称 (datasets目录下的文件夹名)')
-    
-    # 可选参数
-    parser.add_argument('--exp-name', type=str, default='train_experiment',
-                       help='实验名称 (用于区分同一模型的不同训练配置)')
-    parser.add_argument('--epochs', type=int, default=300,
-                       help='训练轮数 (默认: 300)')
-    parser.add_argument('--project-dir', type=str, default=None,
-                       help='项目根目录路径 (默认: 脚本所在目录的上层目录)')
-    parser.add_argument('--update-dataset-path', action='store_true',
-                       help='更新数据集yaml文件中的路径为绝对路径')
-    
-    return parser.parse_args()
-
-def main():
+def main(model='yolov8s-obb.pt',
+         dataset='fixed_tiled_dataset_1',
+         exp_name='train_experiment',
+         epochs=300,
+         project_dir=None,
+         update_dataset_path=False):
     """
     主函数：执行单个模型训练
+
+    Args:
+        model: 模型文件名 (如: yolov8s-obb.pt)
+        dataset: 数据集名称 (datasets目录下的文件夹名)
+        exp_name: 实验名称
+        epochs: 训练轮数
+        project_dir: 项目根目录路径，默认为脚本所在目录的上层目录
+        update_dataset_path: 是否更新数据集yaml文件中的路径为绝对路径
     """
-    args = parse_args()
-    
     # 设置项目目录
-    if args.project_dir:
-        project_dir = Path(args.project_dir).resolve()
+    if project_dir:
+        project_dir = Path(project_dir).resolve()
     else:
         # 默认：脚本所在目录的上层目录
         project_dir = Path(__file__).resolve().parent.parent
-    
+
     logger.info(f"项目根目录: {project_dir}")
-    
+
     # 获取模型路径
-    model_path = get_model_path(args.model, project_dir)
+    model_path = get_model_path(model, project_dir)
     if not model_path.exists():
         logger.warning(f"预训练模型在 {model_path} 未找到，将尝试自动下载。")
         # 如果模型不存在，使用构造的本地路径，让ultralytics库自动下载到该位置
@@ -195,17 +181,17 @@ def main():
         logger.info(f"找到本地模型: {model_path}")
 
     # 数据集配置
-    dataset_root = project_dir / 'datasets' / args.dataset
+    dataset_root = project_dir / 'datasets' / dataset
     dataset_yaml_path = dataset_root / 'dataset.yaml'
-    
+
     if not dataset_yaml_path.exists():
         logger.error(f"数据集配置文件不存在: {dataset_yaml_path}")
-        logger.error(f"请确保数据集目录结构为: datasets/{args.dataset}/dataset.yaml")
+        logger.error(f"请确保数据集目录结构为: datasets/{dataset}/dataset.yaml")
         sys.exit(1)
-    
+
     # 更新数据集路径（如果需要）
-    if args.update_dataset_path:
-        update_dataset_path(dataset_yaml_path, dataset_root)
+    if update_dataset_path:
+        update_dataset_path(yaml_path=dataset_yaml_path, new_base_path=dataset_root)
     else:
         # 检查数据集路径是否正确，如果不正确则提示用户
         try:
@@ -215,25 +201,25 @@ def main():
                 if dataset_path != str(dataset_root.resolve()):
                     logger.warning(f"数据集路径可能不正确。当前: {dataset_path}")
                     logger.warning(f"建议路径: {dataset_root.resolve()}")
-                    logger.warning(f"可使用 --update-dataset-path 参数自动更新路径")
+                    logger.warning(f"可将 update_dataset_path 参数设为 True 自动更新路径")
         except Exception as e:
             logger.warning(f"无法读取数据集配置文件: {e}")
-    
+
     # 执行训练
-    logger.info(f"开始训练模型: {args.model}")
-    logger.info(f"数据集: {args.dataset}")
-    logger.info(f"实验名称: {args.exp_name}")
-    logger.info(f"训练轮数: {args.epochs}")
-    
+    logger.info(f"开始训练模型: {model}")
+    logger.info(f"数据集: {dataset}")
+    logger.info(f"实验名称: {exp_name}")
+    logger.info(f"训练轮数: {epochs}")
+
     best_model_path = train_model(
         model_path=str(model_path),
         dataset_yaml_path=dataset_yaml_path,
         project_dir=project_dir,
-        exp_name=args.exp_name,
-        dataset_name=args.dataset,
-        epochs=args.epochs
+        exp_name=exp_name,
+        dataset_name=dataset,
+        epochs=epochs
     )
-    
+
     if best_model_path:
         logger.info(f"训练完成！最佳模型保存位置: {best_model_path}")
     else:
@@ -242,4 +228,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # 在这里直接修改参数运行
+    main(
+        model='yolov8s-obb.pt',          # 模型文件名
+        dataset='fixed_tiled_dataset_1',  # 数据集名称
+        exp_name='train_experiment',      # 实验名称
+        epochs=300,                       # 训练轮数
+        update_dataset_path=False         # 是否更新数据集路径
+    )

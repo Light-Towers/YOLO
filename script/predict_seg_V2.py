@@ -481,49 +481,41 @@ def analyze_results_statistics(result_file):
     
     return result_data
 
-# 使用示例 - 添加命令行支持
-def main():
-    import argparse
+# 使用示例 - 直接在代码中配置参数
+def main(model=None, image=None, conf=0.7, iou=0.4, list_images=False, 
+         draw_only=False, image_name=None):
+    """展位分割预测主函数
     
-    parser = argparse.ArgumentParser(description='展位分割预测工具')
-    parser.add_argument('--model', type=str, default=None, 
-                       help='模型路径 (相对或绝对路径)')
-    parser.add_argument('--image', type=str, default=None,
-                       help='测试图像路径 (相对或绝对路径)')
-    parser.add_argument('--conf', type=float, default=0.7,
-                       help='置信度阈值 (默认: 0.7)')
-    parser.add_argument('--iou', type=float, default=0.4,
-                       help='IoU阈值 (默认: 0.4)')
-    parser.add_argument('--list-images', action='store_true',
-                       help='列出可用测试图像')
-    parser.add_argument('--draw-only', action='store_true',
-                       help='仅绘制已保存的结果，不进行预测')
-    parser.add_argument('--image-name', type=str,
-                       help='指定图像名称用于绘制结果')
-    
-    args = parser.parse_args()
-    
+    Args:
+        model: 模型路径 (相对或绝对路径)
+        image: 测试图像路径 (相对或绝对路径)
+        conf: 置信度阈值 (默认: 0.7)
+        iou: IoU阈值 (默认: 0.4)
+        list_images: 是否列出可用测试图像
+        draw_only: 是否仅绘制已保存的结果，不进行预测
+        image_name: 指定图像名称用于绘制结果
+    """
     # 1. 初始化预测器
-    predictor = BoothSegmentationPredictor(model_path=args.model)
+    predictor = BoothSegmentationPredictor(model_path=model)
     
     # 如果只是列出图像
-    if args.list_images:
+    if list_images:
         predictor.list_available_images()
         return
     
     # 如果只是绘制结果
-    if args.draw_only:
-        if args.image_name:
-            predictor.draw_results(image_name=args.image_name)
+    if draw_only:
+        if image_name:
+            predictor.draw_results(image_name=image_name)
         else:
             predictor.draw_results()
         return
     
     # 2. 执行预测并保存结果
     result_file = predictor.predict(
-        source_image=args.image,
-        conf=args.conf,
-        iou=args.iou
+        source_image=image,
+        conf=conf,
+        iou=iou
     )
     
     if result_file:
@@ -568,4 +560,13 @@ def main():
         predictor.logger.info("\n🎉 预测完成！所有结果已保存到 output_results/ 目录")
 
 if __name__ == "__main__":
-    main()
+    # 在这里直接修改参数运行
+    main(
+        model=None,           # 模型路径，None则使用默认模型
+        image=None,           # 测试图像路径，None则使用默认图像
+        conf=0.7,             # 置信度阈值
+        iou=0.4,              # IoU阈值
+        list_images=False,    # 是否列出可用图像
+        draw_only=False,      # 是否仅绘制结果
+        image_name=None       # 指定图像名称
+    )

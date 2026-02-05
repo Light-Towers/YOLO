@@ -10,6 +10,9 @@ import numpy as np
 from shapely.geometry import Polygon, box
 import shapely.affinity as affinity
 from pypinyin import lazy_pinyin
+from log_config import get_project_logger
+
+logger = get_project_logger('dataset_tiler')
 
 class FixedTiler:
     """
@@ -50,12 +53,12 @@ class FixedTiler:
         with open(self.json_path, 'r', encoding='utf-8') as f:
             self.labelme_data = json.load(f)
 
-        print(f"🖼️  原图尺寸: {self.img.shape[1]}x{self.img.shape[0]}")
-        print(f"🏷️  标注对象数量: {len(self.labelme_data['shapes'])}")
-        print(f"📊 切片参数: size={self.tile_size}, overlap={self.overlap}")
-        print(f"⚙️  只保留完整标注: {self.keep_only_complete}")
-        print(f"⚙️  最小面积比例: {self.min_area_ratio:.0%}")
-        print(f"📁 输出目录: {self.output_dir}")
+        logger.info(f"🖼️  原图尺寸: {self.img.shape[1]}x{self.img.shape[0]}")
+        logger.info(f"🏷️  标注对象数量: {len(self.labelme_data['shapes'])}")
+        logger.info(f"📊 切片参数: size={self.tile_size}, overlap={self.overlap}")
+        logger.info(f"⚙️  只保留完整标注: {self.keep_only_complete}")
+        logger.info(f"⚙️  最小面积比例: {self.min_area_ratio:.0%}")
+        logger.info(f"📁 输出目录: {self.output_dir}")
 
     def _create_output_structure(self):
         """创建输出目录结构"""
@@ -65,7 +68,7 @@ class FixedTiler:
 
         yaml_content = self._generate_yaml_content()
         (self.output_dir / "dataset.yaml").write_text(yaml_content, encoding='utf-8')
-        print(f"✅ 已创建数据集结构: {self.output_dir}")
+        logger.info(f"✅ 已创建数据集结构: {self.output_dir}")
 
     def _generate_yaml_content(self) -> str:
         path_str = str(self.output_dir.absolute())
@@ -113,7 +116,7 @@ val: images/val
         train_tiles = tiles[:-val_count] if val_count < total else tiles[:1]
         val_tiles = tiles[-val_count:] if val_count > 0 else [tiles[-1]]
 
-        print(f"📊 数据集划分: 训练集 {len(train_tiles)}, 验证集 {len(val_tiles)}")
+        logger.info(f"📊 数据集划分: 训练集 {len(train_tiles)}, 验证集 {len(val_tiles)}")
         return {'train': train_tiles, 'val': val_tiles}
 
     def _is_polygon_complete_in_tile(self, poly: Polygon, tile_box: box) -> bool:
@@ -132,11 +135,11 @@ val: images/val
         """将中文转换为拼音"""
         if not text:
             return text
-        
+
         try:
             pinyin_list = lazy_pinyin(text)
             result = ''.join(pinyin_list).lower()
-            print(f"🔤 '{text}' -> '{result}'")
+            logger.info(f"🔤 '{text}' -> '{result}'")
             return result
         except:
             return text
@@ -183,7 +186,7 @@ val: images/val
         
         # 验证点数（展位应该是4点四边形）
         if len(local_points) != 4:
-            print(f"    ⚠️ 跳过非四边形标注 (点数: {len(local_points)})")
+            logger.warning(f"    ⚠️ 跳过非四边形标注 (点数: {len(local_points)})")
             return None
             
         return {
@@ -219,7 +222,7 @@ val: images/val
     def process(self) -> dict:
         """执行切分"""
         all_tiles = self._get_all_tiles()
-        print(f"🔍 总计 {len(all_tiles)} 个切片位置")
+        logger.info(f"🔍 总计 {len(all_tiles)} 个切片位置")
 
         splits = self._assign_splits(all_tiles)
         results = {'train': [], 'val': []}
@@ -287,7 +290,7 @@ val: images/val
                 f.write(f"0 {points_str}\n")
 
         status = "✅" if annotations else "🟡"
-        print(f"{status} {split_name}: {tile_name} - {len(annotations)} 个完整展位")
+        logger.info(f"{status} {split_name}: {tile_name} - {len(annotations)} 个完整展位")
 
         return {
             'name': tile_name,
@@ -297,16 +300,16 @@ val: images/val
     
     def _print_statistics(self, all_tiles: list, results: dict, stats: dict):
         """打印统计信息"""
-        print("\n" + "=" * 60)
-        print("📊 切分统计报告")
-        print("=" * 60)
-        print(f"总切片数: {len(all_tiles)}")
-        print(f"训练集标注: {sum(t['annotations'] for t in results['train'])}")
-        print(f"验证集标注: {sum(t['annotations'] for t in results['val'])}")
-        print(f"保留的完整展位: {stats['kept_complete']}")
-        print(f"跳过的不完整展位: {stats['skipped_incomplete']}")
-        print(f"保留率: {stats['kept_complete'] / max(stats['total_annotations'], 1):.1%}")
-        print("=" * 60)
+        logger.info("\n" + "=" * 60)
+        logger.info("📊 切分统计报告")
+        logger.info("=" * 60)
+        logger.info(f"总切片数: {len(all_tiles)}")
+        logger.info(f"训练集标注: {sum(t['annotations'] for t in results['train'])}")
+        logger.info(f"验证集标注: {sum(t['annotations'] for t in results['val'])}")
+        logger.info(f"保留的完整展位: {stats['kept_complete']}")
+        logger.info(f"跳过的不完整展位: {stats['skipped_incomplete']}")
+        logger.info(f"保留率: {stats['kept_complete'] / max(stats['total_annotations'], 1):.1%}")
+        logger.info("=" * 60)
 
 
 def find_matching_image(base_name: str, image_dir: Path) -> Path:
@@ -350,16 +353,16 @@ def process_json_file(json_path: Path, image_dir: Path = Path("images")):
         "keep_only_complete": True,  # 只保留完整的4点四边形
     }
 
-    print(f"🔧 使用配置: {json_stem}")
-    print(f"📄 JSON文件: {json_path.name}")
-    print(f"🖼️  匹配图片: {image_path.name}")
+    logger.info(f"🔧 使用配置: {json_stem}")
+    logger.info(f"📄 JSON文件: {json_path.name}")
+    logger.info(f"🖼️  匹配图片: {image_path.name}")
 
     # 创建切分器并执行
     tiler = FixedTiler(config)
     result = tiler.process()
 
-    print(f"\n✅ 数据集已生成: {result['output_dir']}")
-    print(f"📄 YAML配置: {result['yaml_path']}")
+    logger.info(f"\n✅ 数据集已生成: {result['output_dir']}")
+    logger.info(f"📄 YAML配置: {result['yaml_path']}")
 
 def main(input_source: str = r"labelme_annotations/11-ZhuYe.json"):
     """主函数 - 用于切分"""
@@ -368,32 +371,32 @@ def main(input_source: str = r"labelme_annotations/11-ZhuYe.json"):
 
     # 处理单个JSON文件
     if input_path.is_file() and input_path.suffix.lower() == '.json':
-        print(f"📁 处理单个JSON文件: {input_path}")
+        logger.info(f"📁 处理单个JSON文件: {input_path}")
         process_json_file(input_path, image_dir)
     # 处理文件夹
     elif input_path.is_dir():
-        print(f"📂 处理文件夹: {input_path}")
+        logger.info(f"📂 处理文件夹: {input_path}")
         json_files = list(input_path.glob('*.json'))
         if not json_files:
-            print(f"⚠️  在 {input_path} 中未找到JSON文件")
+            logger.warning(f"⚠️  在 {input_path} 中未找到JSON文件")
         else:
-            print(f"🔍 找到 {len(json_files)} 个JSON文件")
+            logger.info(f"🔍 找到 {len(json_files)} 个JSON文件")
             for json_file in json_files:
-                print(f"  📄 {json_file.name}")
+                logger.info(f"  📄 {json_file.name}")
                 process_json_file(json_file, image_dir)
     # 处理多个JSON文件列表（逗号分隔）
     elif ',' in input_source:
-        print("📚 处理多个JSON文件列表")
+        logger.info("📚 处理多个JSON文件列表")
         for path_str in input_source.split(','):
             json_file = Path(path_str.strip())
             if json_file.is_file():
-                print(f"  📄 {json_file.name}")
+                logger.info(f"  📄 {json_file.name}")
                 process_json_file(json_file, image_dir)
             else:
-                print(f"  ❌ 文件不存在: {json_file}")
+                logger.error(f"  ❌ 文件不存在: {json_file}")
     else:
-        print(f"❌ 输入路径无效: {input_path}")
-        print("💡 请提供有效的JSON文件路径、文件夹路径或逗号分隔的多个文件路径")
+        logger.error(f"❌ 输入路径无效: {input_path}")
+        logger.error("💡 请提供有效的JSON文件路径、文件夹路径或逗号分隔的多个文件路径")
 
 
 if __name__ == "__main__":

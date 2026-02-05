@@ -2,6 +2,22 @@ import logging
 import sys
 from pathlib import Path
 
+# 全局日志文件路径
+_unified_log_file = None
+_unified_logger_initialized = False
+
+def set_unified_log_file(log_file_path):
+    """
+    设置全局统一日志文件路径
+
+    Args:
+        log_file_path: 统一日志文件的绝对路径
+    """
+    global _unified_log_file
+    _unified_log_file = Path(log_file_path)
+    # 确保目录存在
+    _unified_log_file.parent.mkdir(parents=True, exist_ok=True)
+
 class ColoredFormatter(logging.Formatter):
     """自定义日志格式化器，为不同级别的日志添加颜色"""
     
@@ -107,16 +123,35 @@ def get_logger(name=__name__, log_file=None):
 def get_project_logger(script_name, log_dir="logs"):
     """
     为项目脚本获取专用的logger
-    
+
     Args:
         script_name: 脚本名称，用于标识日志来源
         log_dir: 日志文件存储目录
-    
+
     Returns:
         适合项目使用的logger实例
     """
-    from pathlib import Path
+    global _unified_log_file, _unified_logger_initialized
+
     project_root = Path(__file__).resolve().parent.parent
-    log_file_path = project_root / log_dir / f"{script_name}.log"
-    
+
+    # 如果设置了统一日志文件，使用统一文件
+    if _unified_log_file is not None:
+        log_file_path = _unified_log_file
+    else:
+        # 否则使用传统的独立日志文件
+        log_file_path = project_root / log_dir / f"{script_name}.log"
+
+    # 如果是第一次使用统一日志文件，初始化文件（清空旧内容）
+    if _unified_log_file is not None and not _unified_logger_initialized:
+        _unified_logger_initialized = True
+        # 初始化统一日志文件
+        from datetime import datetime
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        header = f"\n{'='*80}\n"
+        header += f"统一日志文件初始化时间: {timestamp}\n"
+        header += f"{'='*80}\n\n"
+        with open(log_file_path, 'a', encoding='utf-8') as f:
+            f.write(header)
+
     return get_logger(f"YOLO.{script_name}", log_file_path)
