@@ -87,8 +87,8 @@ def start_predict(model_path, image_path, dataset_name=None, output_dir=None):
     result = get_sliced_prediction(
         image_path,
         detection_model,
-        slice_height=1280,           # 切片高度
-        slice_width=1280,            # 切片宽度
+        slice_height=640,           # 切片高度
+        slice_width=640,            # 切片宽度
         overlap_height_ratio=0.5,  # 高度重叠率
         overlap_width_ratio=0.5,   # 宽度重叠率
         postprocess_type="NMS",     # 合并算法
@@ -132,7 +132,7 @@ if __name__ == "__main__":
 
     # 直接在代码中定义参数值，而不是使用argparse
     model_path = str(project_root / 'models' / 'train' / 'booth_obb_v13' / 'weights' / 'best.pt')
-    image_path = str(project_root / 'original_images' / '11-ZhuYe.jpeg')
+    image_path = str(project_root / 'images' / 'HongMu.png')
     dataset_name = None  # 使用None以让函数自动推断
     output_dir = None    # 使用None以使用默认输出目录
 
