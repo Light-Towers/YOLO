@@ -14,7 +14,7 @@ from src.utils import (
     read_yaml,
     write_yaml,
 )
-from src.core import TRAINING_CONSTANTS
+from src.core import TRAINING_CONSTANTS, IMAGE_CONSTANTS
 
 # 获取项目logger
 logger = get_logger('train')
@@ -43,7 +43,7 @@ def train_model(model_path, dataset_yaml_path, project_dir, exp_name, dataset_na
 
         epochs=epochs,
         patience=TRAINING_CONSTANTS.DEFAULT_PATIENCE,
-        imgsz=TRAINING_CONSTANTS.DEFAULT_IMAGE_SIZE,
+        imgsz=IMAGE_CONSTANTS.DEFAULT_IMAGE_SIZE,
         batch=TRAINING_CONSTANTS.DEFAULT_BATCH,
         device=device,
         workers=workers,
@@ -74,7 +74,7 @@ def train_model(model_path, dataset_yaml_path, project_dir, exp_name, dataset_na
         # ========== 优化器与学习率 ==========
         optimizer='auto',
         lr0=TRAINING_CONSTANTS.DEFAULT_LR,
-        lrf=TRAINING_CONSTANTS.DEFAULT_LRF,
+        lrf=0.01,
         momentum=TRAINING_CONSTANTS.DEFAULT_MOMENTUM,
         weight_decay=TRAINING_CONSTANTS.DEFAULT_WEIGHT_DECAY,
         warmup_epochs=TRAINING_CONSTANTS.WARMUP_EPOCHS,
