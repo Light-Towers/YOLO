@@ -19,6 +19,7 @@ from src.utils.file_utils import (
     read_text,
     write_text,
 )
+from src.utils.image_tile_utils import TileCalculator, calculate_tiles
 
 __all__ = [
     'get_device',
@@ -35,4 +36,6 @@ __all__ = [
     'write_json',
     'read_text',
     'write_text',
+    'TileCalculator',
+    'calculate_tiles',
 ]

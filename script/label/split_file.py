@@ -106,9 +106,11 @@ def split_dataset_fixed(input_dir, output_dir, train_ratio=0.8, seed=42):
 
 # 简单用法示例
 if __name__ == "__main__":
+    project_root = get_project_root()
+
     # 直接设置路径
-    input_folder = "D:/0-mingyang/img_handle/YOLO_Train/yolo-labels"  # 修改为你的文件夹路径
-    output_folder = "D:/Study/github/YOLO/datasets/booth_seg"
+    input_folder = str(project_root / "datasets" / "source" / "yolo-labels")
+    output_folder = str(project_root / "datasets" / "booth_seg")
 
     # 调用函数
     split_dataset_fixed(input_folder, output_folder, train_ratio=0.8, seed=42)

@@ -18,6 +18,7 @@ from src.utils import (
     read_json,
     write_json,
 )
+from src.utils.image_tile_utils import TileCalculator
 from src.core import DATASET_CONSTANTS
 
 logger = get_logger('dataset_tiler')
@@ -100,22 +101,12 @@ val: images/val
     def _get_all_tiles(self) -> List[Tuple[int, int, int, int, int]]:
         """获取所有切片位置"""
         h, w = self.img.shape[:2]
-        tiles = []
-        tile_id = 0
-        step = self.tile_size - self.overlap
-
-        y = 0
-        while y < h:
-            x = 0
-            while x < w:
-                x_end = min(x + self.tile_size, w)
-                y_end = min(y + self.tile_size, h)
-                tiles.append((tile_id, x, y, x_end, y_end))
-                tile_id += 1
-                x += step
-            y += step
-
-        return tiles
+        # 使用统一的切图计算工具
+        return TileCalculator.calculate_tiles(
+            image_size=(h, w),
+            tile_size=self.tile_size,
+            overlap=self.overlap
+        )
 
     def _assign_splits(self, tiles: list) -> Dict[str, list]:
         """分配训练/验证集"""
@@ -351,8 +342,7 @@ val: images/val
 
         # 保存JSON文件
         json_path = self.output_dir / "json_annotations" / split_name / tile_name.replace(".png", ".json")
-        with open(json_path, 'w', encoding='utf-8') as f:
-            json.dump(json_data, f, ensure_ascii=False, indent=2)
+        write_json(json_path, json_data, ensure_ascii=False, indent=2)
 
     def _print_statistics(self, all_tiles: list, results: dict, stats: dict):
         """打印统计信息"""
