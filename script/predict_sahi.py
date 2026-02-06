@@ -9,7 +9,7 @@ from pathlib import Path
 # 获取项目logger
 logger = get_project_logger('predict_obb_sahi')
 
-def start_predict(model_path, image_path, dataset_name=None, output_dir=None):
+def start_predict(model_path, image_path, dataset_name=None, output_dir=None, model_name=None):
     # 确保必须提供model_path和image_path参数
     if model_path is None:
         raise ValueError("model_path must be provided")
@@ -19,31 +19,36 @@ def start_predict(model_path, image_path, dataset_name=None, output_dir=None):
     model_path = str(model_path)
     image_path = str(image_path)
 
-    # 从模型路径中提取模型名称
-    model_name = Path(model_path).parent.parent.name  # 获取上级目录名，通常是模型名称
-    if model_name == "weights":
-        # 如果上两级目录是 weights 目录，则取再上一级目录名
-        model_name = Path(model_path).parent.parent.parent.name
+    # 如果没有显式提供model_name，则从模型路径中提取
+    if model_name is None:
+        # 从模型路径中提取模型名称
+        model_name = Path(model_path).parent.parent.name  # 获取上级目录名，通常是模型名称
+        if model_name == "weights":
+            # 如果上两级目录是 weights 目录，则取再上一级目录名
+            model_name = Path(model_path).parent.parent.parent.name
 
-    # 如果仍无法获取有意义的模型名，则使用文件名的一部分
-    if model_name in ["weights", "models", "results"]:
-        model_file_name = Path(model_path).stem
-        # 尝试从模型文件名中提取有意义的模型名
-        parts = model_file_name.split('_')
-        if len(parts) > 1:
-            model_name = '_'.join(parts[:-1])  # 去掉最后一部分（如best.pt中的best）
-        else:
-            model_name = model_file_name
+        # 如果仍无法获取有意义的模型名，则使用文件名的一部分
+        if model_name in ["weights", "models", "results"]:
+            model_file_name = Path(model_path).stem
+            # 尝试从模型文件名中提取有意义的模型名
+            parts = model_file_name.split('_')
+            if len(parts) > 1:
+                model_name = '_'.join(parts[:-1])  # 去掉最后一部分（如best.pt中的best）
+            else:
+                model_name = model_file_name
+    else:
+        # 使用传入的模型名称
+        model_name = str(model_name)
 
     # 构建输出目录结构
     project_dir = Path(__file__).resolve().parent.parent
-    
+
     # 如果指定了输出目录则使用，否则使用默认目录
     if output_dir is not None:
         base_output_dir = Path(output_dir)
     else:
         base_output_dir = project_dir / "output" / "results"
-    
+
     # 如果提供了数据集名称，使用它，否则尝试从模型路径推断
     if dataset_name is None:
         # 从模型路径尝试推断数据集名称

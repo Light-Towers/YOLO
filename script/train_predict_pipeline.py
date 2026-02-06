@@ -70,16 +70,19 @@ def get_image_paths(image_sources):
     
     return sorted(list(set(image_paths)))  # 去重并排序
 
-def run_predict_sahi_after_training(model_path, image_path):
+def run_predict_sahi_after_training(model_path, image_path, model_filename):
     """
     在训练完成后通过调用predict_sahi模块运行预测
     """
     try:
         logger.info(f"Starting prediction for image: {image_path}")
-        
-        # 调用predict_sahi模块的start_predict函数，传递数据集名称
-        start_predict(model_path, image_path, dataset_name)
-        
+
+        # 从模型文件名中提取模型名称（去掉扩展名）
+        model_name_for_output = Path(model_filename).stem  # 如 "yolov8s-obb"
+
+        # 调用predict_sahi模块的start_predict函数，传递数据集名称和模型名称
+        start_predict(model_path, image_path, dataset_name, model_name=model_name_for_output)
+
         logger.info("SAHI prediction completed successfully.")
     except Exception as e:
         logger.error(f"Error occurred when calling predict_sahi module: {str(e)}")
@@ -128,6 +131,6 @@ logger.info(f"Found {len(all_image_paths)} images to predict")
 for model_path, model_filename in trained_models:
     logger.info(f"Running prediction for model: {model_filename}")
     for image_path in all_image_paths:
-        run_predict_sahi_after_training(model_path, image_path)
+        run_predict_sahi_after_training(model_path, image_path, model_filename)
 
 logger.info("所有训练任务和预测任务已完成！")
