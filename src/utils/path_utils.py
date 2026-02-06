@@ -43,7 +43,7 @@ class ProjectPaths:
     @property
     def labelme_annotations(self) -> Path:
         """LabelMe标注文件目录"""
-        return self.root / "labelme_annotations"
+        return self.root / "annotations"
 
     @property
     def training_output(self) -> Path:

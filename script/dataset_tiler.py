@@ -409,7 +409,7 @@ def process_json_file(json_path: Path, image_dir: Path = Path("images")):
     logger.info(f"\n✅ 数据集已生成: {result['output_dir']}")
     logger.info(f"📄 YAML配置: {result['yaml_path']}")
 
-def main(input_source: str = r"labelme_annotations/11-ZhuYe.json"):
+def main(input_source: str = r"annotations/11-ZhuYe.json"):
     """主函数 - 用于切分"""
     image_dir = Path("images")
     input_path = Path(input_source)
@@ -446,5 +446,5 @@ def main(input_source: str = r"labelme_annotations/11-ZhuYe.json"):
 
 if __name__ == "__main__":
     # 可以在这里指定input_source参数，如果不指定则使用默认值
-    input_source = r"labelme_annotations/红木.json"
+    input_source = r"annotations/红木.json"
     main(input_source)
