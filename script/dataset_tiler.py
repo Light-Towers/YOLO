@@ -14,10 +14,10 @@ from log_config import get_project_logger
 
 logger = get_project_logger('dataset_tiler')
 
-class FixedTiler:
+class Tiler:
     """
-    修复版YOLO数据集切分器
-    
+    YOLO数据集切分器
+
     关键修复:
     1. 只保留完整在切片内的展位标注（不切割多边形）
     2. 增大overlap确保每个展位至少在一个切片中是完整的
@@ -43,6 +43,8 @@ class FixedTiler:
         self.min_area_ratio = config.get("min_area_ratio", 0.9)  # 90%以上才保留
         # 新增配置：是否只保留完整的4点多边形
         self.keep_only_complete = config.get("keep_only_complete", True)
+        # 新增配置：是否保存JSON格式标注
+        self.save_json = config.get("save_json", False)
 
         self._create_output_structure()
         
@@ -65,6 +67,8 @@ class FixedTiler:
         for split in ['train', 'val']:
             (self.output_dir / "images" / split).mkdir(parents=True, exist_ok=True)
             (self.output_dir / "labels" / split).mkdir(parents=True, exist_ok=True)
+            if self.save_json:
+                (self.output_dir / "json_annotations" / split).mkdir(parents=True, exist_ok=True)
 
         yaml_content = self._generate_yaml_content()
         (self.output_dir / "dataset.yaml").write_text(yaml_content, encoding='utf-8')
@@ -148,28 +152,37 @@ val: images/val
                                    tile_w: int, tile_h: int) -> Union[dict, None]:
         """
         修复版标注转换
-        
+
         关键改变：不再切割多边形，只保留完整的展位
         """
         points = shape["points"]
         poly = Polygon(points)
-        
+
         # 检查多边形有效性
         if not poly.is_valid:
             return None
-            
+
         # 创建切片边界框
         tile_box = box(x_offset, y_offset, x_offset + tile_w, y_offset + tile_h)
-        
+
         # 检查多边形是否完整在切片内
         if not self._is_polygon_complete_in_tile(poly, tile_box):
             return None
-        
+
+        # 获取原始shape_type
+        original_shape_type = shape.get("shape_type", "polygon")
+
         # 根据配置决定处理方式
         if self.keep_only_complete:
-            return self._process_complete_polygon(points, x_offset, y_offset, tile_w, tile_h)
+            result = self._process_complete_polygon(points, x_offset, y_offset, tile_w, tile_h)
         else:
-            return self._process_intersected_polygon(poly, tile_box, x_offset, y_offset, tile_w, tile_h)
+            result = self._process_intersected_polygon(poly, tile_box, x_offset, y_offset, tile_w, tile_h)
+
+        # 保留原始shape_type
+        if result:
+            result["shape_type"] = original_shape_type
+
+        return result
     
     def _process_complete_polygon(self, points: List[List[float]], x_offset: int, y_offset: int, 
                                   tile_w: int, tile_h: int) -> Union[dict, None]:
@@ -289,6 +302,10 @@ val: images/val
                 points_str = " ".join([f"{px:.6f} {py:.6f}" for px, py in ann["points"]])
                 f.write(f"0 {points_str}\n")
 
+        # 保存JSON格式标注（用于标注工具检查）
+        if self.save_json:
+            self._save_json_annotation(split_name, tile_name, tile_w, tile_h, annotations)
+
         status = "✅" if annotations else "🟡"
         logger.info(f"{status} {split_name}: {tile_name} - {len(annotations)} 个完整展位")
 
@@ -297,7 +314,38 @@ val: images/val
             'annotations': len(annotations),
             'position': (x, y, x_end, y_end)
         }
-    
+
+    def _save_json_annotation(self, split_name: str, tile_name: str, tile_w: int, tile_h: int, annotations: List[dict]):
+        """保存JSON格式标注（用于标注工具检查）"""
+        # 转换为像素坐标
+        shapes = []
+        for ann in annotations:
+            points = [[px * tile_w, py * tile_h] for px, py in ann["points"]]
+            shape_type = ann.get("shape_type", "polygon")  # 从annotation中获取shape_type
+            shapes.append({
+                "label": self.class_names[ann["class_id"]],
+                "points": points,
+                "group_id": None,
+                "shape_type": shape_type,
+                "flags": {}
+            })
+
+        # 生成JSON数据
+        json_data = {
+            "version": "5.0.1",
+            "flags": {},
+            "shapes": shapes,
+            "imagePath": tile_name,
+            "imageData": None,
+            "imageHeight": tile_h,
+            "imageWidth": tile_w
+        }
+
+        # 保存JSON文件
+        json_path = self.output_dir / "json_annotations" / split_name / tile_name.replace(".png", ".json")
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(json_data, f, ensure_ascii=False, indent=2)
+
     def _print_statistics(self, all_tiles: list, results: dict, stats: dict):
         """打印统计信息"""
         logger.info("\n" + "=" * 60)
@@ -351,6 +399,7 @@ def process_json_file(json_path: Path, image_dir: Path = Path("images")):
         "dataset_name": json_stem,
         "min_area_ratio": 0.85,  # 展位85%以上在切片内才保留
         "keep_only_complete": True,  # 只保留完整的4点四边形
+        "save_json": False,  # 是否保存JSON格式标注（默认关闭）
     }
 
     logger.info(f"🔧 使用配置: {json_stem}")
@@ -358,7 +407,7 @@ def process_json_file(json_path: Path, image_dir: Path = Path("images")):
     logger.info(f"🖼️  匹配图片: {image_path.name}")
 
     # 创建切分器并执行
-    tiler = FixedTiler(config)
+    tiler = Tiler(config)
     result = tiler.process()
 
     logger.info(f"\n✅ 数据集已生成: {result['output_dir']}")
