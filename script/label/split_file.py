@@ -1,17 +1,19 @@
 import os
 import shutil
 import random
-import sys
 from pathlib import Path
 
-# 添加项目根目录到sys.path以支持相对导入
-project_root = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(project_root))
-
-from log_config import get_project_logger
+# 导入工程化工具
+from src.utils import (
+    get_project_root,
+    get_logger,
+    safe_mkdir,
+    get_image_files,
+)
+from src.core import DATASET_CONSTANTS
 
 # 获取项目logger
-logger = get_project_logger('label.split_file')
+logger = get_logger('label.split_file')
 
 def split_dataset_fixed(input_dir, output_dir, train_ratio=0.8, seed=42):
     """
@@ -24,32 +26,33 @@ def split_dataset_fixed(input_dir, output_dir, train_ratio=0.8, seed=42):
         ├── train/
         └── val/
     """
-    
+    # 使用常量中的默认值
+    train_ratio = train_ratio if train_ratio != 0.8 else DATASET_CONSTANTS.DEFAULT_TRAIN_RATIO
+
     # 设置随机种子，保证每次分割结果一致
     random.seed(seed)
-    
-    # 创建输出目录
-    train_img_dir = os.path.join(output_dir, 'images', 'train')
-    val_img_dir = os.path.join(output_dir, 'images', 'val')
-    train_label_dir = os.path.join(output_dir, 'labels', 'train')
-    val_label_dir = os.path.join(output_dir, 'labels', 'val')
-    
+
+    # 使用工具函数创建输出目录
+    train_img_dir = Path(output_dir) / 'images' / 'train'
+    val_img_dir = Path(output_dir) / 'images' / 'val'
+    train_label_dir = Path(output_dir) / 'labels' / 'train'
+    val_label_dir = Path(output_dir) / 'labels' / 'val'
+
     for dir_path in [train_img_dir, val_img_dir, train_label_dir, val_label_dir]:
-        os.makedirs(dir_path, exist_ok=True)
-    
-    # 收集所有图片文件
+        safe_mkdir(dir_path)
+
+    # 使用工具函数收集图片文件
+    input_path = Path(input_dir)
     image_files = []
-    for file in os.listdir(input_dir):
-        if file.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp', '.tif', '.tiff')):
-            # 检查对应的txt文件是否存在
-            base_name = os.path.splitext(file)[0]
-            txt_file = base_name + '.txt'
-            txt_path = os.path.join(input_dir, txt_file)
-            
-            if os.path.exists(txt_path):
-                image_files.append((file, base_name, txt_file))
-            else:
-                logger.warning(f"警告: {file} 没有对应的标签文件，已跳过")
+    for img_file in get_image_files(input_path, recursive=False):
+        # 检查对应的txt文件是否存在
+        base_name = img_file.stem
+        txt_file = img_file.with_suffix('.txt')
+
+        if txt_file.exists():
+            image_files.append((img_file.name, base_name, str(txt_file)))
+        else:
+            logger.warning(f"警告: {img_file.name} 没有对应的标签文件，已跳过")
     
     logger.info(f"找到 {len(image_files)} 对有效数据（图片+标签）")
     
@@ -70,31 +73,32 @@ def split_dataset_fixed(input_dir, output_dir, train_ratio=0.8, seed=42):
     logger.info(f"验证集: {len(val_files)} 个文件")
     
     # 复制训练集
+    input_path = Path(input_dir)
     for img_file, base_name, txt_file in train_files:
         # 复制图片
         shutil.copy2(
-            os.path.join(input_dir, img_file),
-            os.path.join(train_img_dir, img_file)
+            input_path / img_file,
+            train_img_dir / img_file
         )
-        
+
         # 复制标签
         shutil.copy2(
-            os.path.join(input_dir, txt_file),
-            os.path.join(train_label_dir, txt_file)
+            Path(txt_file),
+            train_label_dir / Path(txt_file).name
         )
-    
+
     # 复制验证集
     for img_file, base_name, txt_file in val_files:
         # 复制图片
         shutil.copy2(
-            os.path.join(input_dir, img_file),
-            os.path.join(val_img_dir, img_file)
+            input_path / img_file,
+            val_img_dir / img_file
         )
-        
+
         # 复制标签
         shutil.copy2(
-            os.path.join(input_dir, txt_file),
-            os.path.join(val_label_dir, txt_file)
+            Path(txt_file),
+            val_label_dir / Path(txt_file).name
         )
     
     logger.info(f"\n完成！文件已保存到: {output_dir}")

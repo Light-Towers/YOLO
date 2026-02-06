@@ -1,0 +1,93 @@
+# 默认配置文件
+# 使用说明：python -c "from yaml import safe_load; print(safe_load(open('configs/default.yaml')))"
+
+project:
+  name: "yolo-booth-detection"
+  version: "0.1.0"
+
+# 数据集配置
+dataset:
+  name: "booth_seg"
+  root_dir: "datasets"
+  train_ratio: 0.8
+  min_val_tiles: 2
+
+# 训练配置
+training:
+  # 模型配置
+  models:
+    - "yolov8s-obb.pt"
+    - "yolo11s-obb.pt"
+    - "yolo26s-obb.pt"
+
+  # 训练参数
+  epochs: 300
+  patience: 50
+  batch: 0.9
+  imgsz: 640
+  device: "auto"  # auto, cpu, 0, 1, ...
+
+  # 优化器配置
+  optimizer: "auto"
+  lr0: 0.01
+  lrf: 0.01
+  momentum: 0.937
+  weight_decay: 0.0005
+  warmup_epochs: 3
+  warmup_momentum: 0.8
+  warmup_bias_lr: 0.1
+
+  # 数据增强
+  degrees: 15.0
+  translate: 0.1
+  scale: 0.5
+  shear: 0.0
+  perspective: 0.001
+  flipud: 0.0
+  fliplr: 0.5
+  mosaic: 1.0
+  mixup: 0.1
+  copy_paste: 0.0
+
+  # 其他参数
+  dropout: 0.0
+  cos_lr: true
+  single_cls: true
+  overlap_mask: false
+
+# 推理配置
+inference:
+  # 置信度阈值
+  confidence_threshold: 0.7
+  iou_threshold: 0.2
+
+  # SAHI 切片推理
+  sahi:
+    enabled: true
+    slice_height: 640
+    slice_width: 640
+    overlap_height_ratio: 0.5
+    overlap_width_ratio: 0.5
+    postprocess_type: "NMS"
+    postprocess_match_metric: "IOS"
+    postprocess_match_threshold: 0.5
+
+  # 输出配置
+  hide_labels: true
+  hide_conf: true
+  rect_th: 2
+
+# 路径配置
+paths:
+  models_dir: "models"
+  datasets_dir: "datasets"
+  outputs_dir: "output"
+  logs_dir: "logs"
+  images_dir: "images"
+
+# 日志配置
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: "colored"  # colored, plain, json
+  log_to_file: true
+  log_dir: "logs"

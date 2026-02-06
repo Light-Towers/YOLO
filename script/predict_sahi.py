@@ -1,13 +1,21 @@
 from sahi import AutoDetectionModel
 from sahi.predict import get_sliced_prediction
 import os
-import json
-import torch
-from log_config import get_project_logger
 from pathlib import Path
+import torch
+
+# 导入工程化工具
+from src.utils import (
+    get_device,
+    get_project_root,
+    get_logger,
+    safe_mkdir,
+    write_json,
+)
+from src.core import INFERENCE_CONSTANTS
 
 # 获取项目logger
-logger = get_project_logger('predict_obb_sahi')
+logger = get_logger('predict_sahi')
 
 def start_predict(model_path, image_path, dataset_name=None, output_dir=None, model_name=None):
     # 确保必须提供model_path和image_path参数
@@ -41,7 +49,7 @@ def start_predict(model_path, image_path, dataset_name=None, output_dir=None, mo
         model_name = str(model_name)
 
     # 构建输出目录结构
-    project_dir = Path(__file__).resolve().parent.parent
+    project_dir = get_project_root()
 
     # 如果指定了输出目录则使用，否则使用默认目录
     if output_dir is not None:
@@ -64,8 +72,8 @@ def start_predict(model_path, image_path, dataset_name=None, output_dir=None, mo
     # 创建模型和数据集的输出目录
     model_dataset_dir = base_output_dir / model_name / dataset_name
 
-    # 创建目录（如果不存在）
-    os.makedirs(model_dataset_dir, exist_ok=True)
+    # 使用工具函数创建目录
+    safe_mkdir(model_dataset_dir)
 
     # 从输入图像文件名生成输出文件名
     input_filename = os.path.basename(image_path)
@@ -82,23 +90,23 @@ def start_predict(model_path, image_path, dataset_name=None, output_dir=None, mo
     detection_model = AutoDetectionModel.from_pretrained(
         model_type="ultralytics",
         model_path=model_path,
-        confidence_threshold=0.7,  # OBB任务可能调整置信度阈值
-        device="cuda:0" if torch.cuda.is_available() else "cpu", 
+        confidence_threshold=INFERENCE_CONSTANTS.DEFAULT_CONFIDENCE,
+        device=get_device(),
     )
 
     logger.info("正在进行切片推理，请稍候...")
 
-    # 3. 执行切片推理 
+    # 3. 执行切片推理
     result = get_sliced_prediction(
         image_path,
         detection_model,
-        slice_height=640,           # 切片高度
-        slice_width=640,            # 切片宽度
-        overlap_height_ratio=0.5,  # 高度重叠率
-        overlap_width_ratio=0.5,   # 宽度重叠率
-        postprocess_type="NMS",     # 合并算法
-        postprocess_match_metric="IOS",  # 合并度量
-        postprocess_match_threshold=0.5,  # OBB任务可能需要调整这个值
+        slice_height=INFERENCE_CONSTANTS.DEFAULT_SLICE_SIZE,
+        slice_width=INFERENCE_CONSTANTS.DEFAULT_SLICE_SIZE,
+        overlap_height_ratio=INFERENCE_CONSTANTS.DEFAULT_OVERLAP_RATIO,
+        overlap_width_ratio=INFERENCE_CONSTANTS.DEFAULT_OVERLAP_RATIO,
+        postprocess_type="NMS",
+        postprocess_match_metric="IOS",
+        postprocess_match_threshold=INFERENCE_CONSTANTS.DEFAULT_MATCH_THRESHOLD,
     )
 
     logger.info(f"检测完成！共检测到 {len(result.object_prediction_list)} 个物体。")
@@ -125,15 +133,14 @@ def start_predict(model_path, image_path, dataset_name=None, output_dir=None, mo
 
     ## 保存为 JSON
     json_path = model_dataset_dir / f"{output_filename}.json"
-    with open(json_path, "w") as f:
-        json.dump(summary_data, f, indent=4)
+    write_json(json_path, summary_data, indent=4)
 
     logger.info(f"SAHI prediction completed. Results saved to {model_dataset_dir}")
 
 
 if __name__ == "__main__":
-    # 定义项目根目录：假设 script 在 project_root/script 下
-    project_root = Path(__file__).resolve().parent.parent
+    # 使用工具函数获取项目根目录
+    project_root = get_project_root()
 
     # 直接在代码中定义参数值，而不是使用argparse
     model_path = str(project_root / 'models' / 'train' / 'booth_obb_v13' / 'weights' / 'best.pt')

@@ -10,9 +10,17 @@ import numpy as np
 from shapely.geometry import Polygon, box
 import shapely.affinity as affinity
 from pypinyin import lazy_pinyin
-from log_config import get_project_logger
 
-logger = get_project_logger('dataset_tiler')
+# 导入工程化工具
+from src.utils import (
+    get_logger,
+    safe_mkdir,
+    read_json,
+    write_json,
+)
+from src.core import DATASET_CONSTANTS
+
+logger = get_logger('dataset_tiler')
 
 class Tiler:
     """
@@ -32,28 +40,28 @@ class Tiler:
         original_output_dir = config["output_dir"]
         self.output_dir_name = self._convert_chinese_to_pinyin(Path(original_output_dir).name)
         self.output_dir = Path(original_output_dir).parent / self.output_dir_name
-        self.tile_size = config.get("tile_size", 640)
-        self.overlap = config.get("overlap", 200)  # 增大默认overlap
-        self.split_ratio = config.get("split_ratio", 0.8)
-        self.min_val_tiles = config.get("min_val_tiles", 2)
+        self.tile_size = config.get("tile_size", DATASET_CONSTANTS.DEFAULT_TILE_SIZE)
+        self.overlap = config.get("overlap", DATASET_CONSTANTS.DEFAULT_OVERLAP)
+        self.split_ratio = config.get("split_ratio", DATASET_CONSTANTS.DEFAULT_TRAIN_RATIO)
+        self.min_val_tiles = config.get("min_val_tiles", DATASET_CONSTANTS.DEFAULT_MIN_VAL_TILES)
         self.class_names = config.get("class_names", ["booth"])
         self.dataset_name = self._convert_chinese_to_pinyin(config.get("dataset_name", "fixed_dataset"))
-        
+
         # 新增配置：最小保留比例（展位面积在切片内的比例）
-        self.min_area_ratio = config.get("min_area_ratio", 0.9)  # 90%以上才保留
+        self.min_area_ratio = config.get("min_area_ratio", DATASET_CONSTANTS.DEFAULT_MIN_AREA_RATIO)
         # 新增配置：是否只保留完整的4点多边形
         self.keep_only_complete = config.get("keep_only_complete", True)
         # 新增配置：是否保存JSON格式标注
         self.save_json = config.get("save_json", False)
 
         self._create_output_structure()
-        
+
         self.img = cv2.imread(str(self.image_path))
         if self.img is None:
             raise ValueError(f"无法读取图像: {self.image_path}")
 
-        with open(self.json_path, 'r', encoding='utf-8') as f:
-            self.labelme_data = json.load(f)
+        # 使用工具函数读取JSON
+        self.labelme_data = read_json(self.json_path)
 
         logger.info(f"🖼️  原图尺寸: {self.img.shape[1]}x{self.img.shape[0]}")
         logger.info(f"🏷️  标注对象数量: {len(self.labelme_data['shapes'])}")
@@ -65,10 +73,10 @@ class Tiler:
     def _create_output_structure(self):
         """创建输出目录结构"""
         for split in ['train', 'val']:
-            (self.output_dir / "images" / split).mkdir(parents=True, exist_ok=True)
-            (self.output_dir / "labels" / split).mkdir(parents=True, exist_ok=True)
+            safe_mkdir(self.output_dir / "images" / split)
+            safe_mkdir(self.output_dir / "labels" / split)
             if self.save_json:
-                (self.output_dir / "json_annotations" / split).mkdir(parents=True, exist_ok=True)
+                safe_mkdir(self.output_dir / "json_annotations" / split)
 
         yaml_content = self._generate_yaml_content()
         (self.output_dir / "dataset.yaml").write_text(yaml_content, encoding='utf-8')

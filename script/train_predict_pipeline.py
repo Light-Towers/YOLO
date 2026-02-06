@@ -1,10 +1,16 @@
 from ultralytics import YOLO
 import os
 from pathlib import Path
-import yaml
 import re
 import torch
-from log_config import get_project_logger
+
+# 导入工程化工具
+from src.utils import (
+    get_project_root,
+    get_logger,
+    get_image_files,
+)
+from src.core import TRAINING_CONSTANTS
 
 # 导入train模块中的函数
 from train import train_model, get_model_path, update_dataset_path
@@ -13,7 +19,7 @@ from train import train_model, get_model_path, update_dataset_path
 from predict_sahi import start_predict
 
 # 获取项目logger
-logger = get_project_logger('train_predict_pipeline')
+logger = get_logger('train_predict_pipeline')
 
 
 class TrainingPipelineConfig:
@@ -167,12 +173,9 @@ class PredictionManager:
             if source_path.is_file():
                 image_paths.append(str(source_path))
             elif source_path.is_dir():
-                extensions = ['*.jpg', '*.jpeg', '*.png', '*.bmp', '*.tiff', '*.tif']
-                for ext in extensions:
-                    try:
-                        image_paths.extend([str(p) for p in source_path.glob(ext)])
-                    except (NotADirectoryError, PermissionError, OSError):
-                        continue
+                # 使用工具函数获取图片文件
+                images = get_image_files(source_path, recursive=False)
+                image_paths.extend([str(img) for img in images])
             else:
                 logger.warning(f"图像源不存在: {source}")
 
@@ -216,8 +219,8 @@ class PredictionManager:
 class TrainPredictPipeline:
     """训练预测流水线主类"""
     def __init__(self, project_dir=None):
-        self.project_dir = project_dir or Path(__file__).resolve().parent.parent
-        self.logger = get_project_logger('train_predict_pipeline')
+        self.project_dir = project_dir or get_project_root()
+        self.logger = get_logger('train_predict_pipeline')
         self.logger.info(f"项目根目录: {self.project_dir}")
 
         self.config = TrainingPipelineConfig(self.project_dir)
