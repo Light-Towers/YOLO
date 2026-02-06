@@ -2,11 +2,9 @@
 切分器 - 只保留完整的展位标注，避免形状被切割
 处理原始图片和json文件, 生成数据集
 """
-import json
 from pathlib import Path
 from typing import Dict, Any, List, Tuple, Union
 import cv2
-import numpy as np
 from shapely.geometry import Polygon, box
 import shapely.affinity as affinity
 from pypinyin import lazy_pinyin
@@ -142,7 +140,7 @@ val: images/val
         try:
             pinyin_list = lazy_pinyin(text)
             result = ''.join(pinyin_list).lower()
-            logger.info(f"🔤 '{text}' -> '{result}'")
+            # logger.info(f"🔤 '{text}' -> '{result}'")
             return result
         except:
             return text
@@ -448,5 +446,5 @@ def main(input_source: str = r"labelme_annotations/11-ZhuYe.json"):
 
 if __name__ == "__main__":
     # 可以在这里指定input_source参数，如果不指定则使用默认值
-    input_source = r"labelme_annotations/测试切图_222.json"
+    input_source = r"labelme_annotations/红木.json"
     main(input_source)
