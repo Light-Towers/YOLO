@@ -15,122 +15,277 @@ from predict_sahi import start_predict
 # 获取项目logger
 logger = get_project_logger('train_predict_pipeline')
 
-# 定义动态基础路径
-project_dir = Path(__file__).resolve().parent.parent
-logger.info(f"Project root directory: {project_dir}")
 
-# ==================== 1. 自动化配置提取 ====================
-# [配置项] 待训练的模型列表
-# 脚本会自动根据模型名称识别版本（如 yolo11, yolov8, yolo26 等）并寻找预训练权重
-models_to_train = [
-    "yolov8s-obb.pt",
-    "yolo11s-obb.pt",
-    "yolo26s-obb.pt",
-]
+class TrainingPipelineConfig:
+    """训练预测流水线配置类"""
+    def __init__(self, project_dir):
+        self.project_dir = project_dir
+        self.models_to_train = []
+        self.dataset_name = None
+        self.exp_name = None
+        self.prediction_images = []
+        self.epochs = 3
 
-# [配置项] 数据集名称 (datasets 目录下的文件夹名)
-dataset_name = "booth_seg"
+    def set_models(self, models):
+        """设置待训练模型列表"""
+        self.models_to_train = models
 
-# [配置项] 实验/轮次名称 (用于区分同一模型的不同训练配置)
-exp_name = 'booth_obb_v1'
+    def set_dataset(self, dataset_name):
+        """设置数据集名称"""
+        self.dataset_name = dataset_name
 
-# [配置项] 预测图像路径列表 (支持单个或多个图片路径，或图片文件夹路径)
-prediction_images = [
-    f"{project_dir}/images/2024年展位图.jpg",
-    f"{project_dir}/images/第十一届世界猪业博览会.jpeg",
-    f"{project_dir}/images/长沙国际会展中心.jpg",
-    f"{project_dir}/images/2020畜博会.png",
+    def set_experiment(self, exp_name):
+        """设置实验名称"""
+        self.exp_name = exp_name
 
-    # f"{project_dir}/images",   # 使用目录
-]
+    def set_prediction_images(self, images):
+        """设置预测图像路径列表"""
+        self.prediction_images = images
 
-# ========================================================
+    def set_epochs(self, epochs):
+        """设置训练轮数"""
+        self.epochs = epochs
 
-def get_image_paths(image_sources):
-    """
-    从图片路径列表或文件夹路径列表中获取所有图片路径
-    """
-    image_paths = []
-    for source in image_sources:
-        source_path = Path(source)
-        if source_path.is_file():
-            # 如果是单个文件
-            image_paths.append(str(source_path))
-        elif source_path.is_dir():
-            # 如果是目录，获取目录中所有图片文件（仅当前目录，避免递归到系统目录）
-            extensions = ['*.jpg', '*.jpeg', '*.png', '*.bmp', '*.tiff', '*.tif']
-            for ext in extensions:
-                try:
-                    image_paths.extend([str(p) for p in source_path.glob(ext)])
-                except (NotADirectoryError, PermissionError, OSError):
-                    # 忽略系统特殊文件或权限问题
-                    continue
+    def validate(self):
+        """验证配置是否完整"""
+        if not self.models_to_train:
+            raise ValueError("未设置待训练模型列表")
+        if not self.dataset_name:
+            raise ValueError("未设置数据集名称")
+        if not self.exp_name:
+            raise ValueError("未设置实验名称")
+        if not self.prediction_images:
+            raise ValueError("未设置预测图像路径")
+
+
+class DatasetManager:
+    """数据集管理类"""
+    def __init__(self, project_dir, dataset_name, logger):
+        self.project_dir = project_dir
+        self.dataset_name = dataset_name
+        self.dataset_root = project_dir / 'datasets' / dataset_name
+        self.dataset_yaml_path = self.dataset_root / 'dataset.yaml'
+        self.logger = logger
+
+    def prepare(self):
+        """准备数据集（更新路径等）"""
+        self.logger.info(f"Preparing dataset: {self.dataset_name}")
+        self.logger.info(f"Dataset root: {self.dataset_root}")
+
+        if not self.dataset_root.exists():
+            raise FileNotFoundError(f"数据集目录不存在: {self.dataset_root}")
+
+        if not self.dataset_yaml_path.exists():
+            raise FileNotFoundError(f"数据集配置文件不存在: {self.dataset_yaml_path}")
+
+        update_dataset_path(self.dataset_yaml_path, self.dataset_root)
+        self.logger.info(f"Dataset {self.dataset_name} prepared successfully")
+
+    def get_yaml_path(self):
+        """获取数据集配置文件路径"""
+        return self.dataset_yaml_path
+
+
+class ModelTrainer:
+    """模型训练管理类"""
+    def __init__(self, config, logger):
+        self.config = config
+        self.project_dir = config.project_dir
+        self.logger = logger
+        self.trained_models = []
+
+    def train_all_models(self):
+        """训练所有配置的模型"""
+        dataset_manager = DatasetManager(
+            self.project_dir,
+            self.config.dataset_name,
+            self.logger
+        )
+        dataset_manager.prepare()
+
+        self.logger.info(f"{'='*50}")
+        self.logger.info(f"开始训练 {len(self.config.models_to_train)} 个模型")
+        self.logger.info(f"{'='*50}")
+
+        for model_filename in self.config.models_to_train:
+            model_path = self._train_single_model(model_filename)
+            if model_path:
+                self.trained_models.append((model_path, model_filename))
+
+        self.logger.info(f"{'='*50}")
+        self.logger.info(f"训练完成，成功训练 {len(self.trained_models)} 个模型")
+        self.logger.info(f"{'='*50}")
+
+        return self.trained_models
+
+    def _train_single_model(self, model_filename):
+        """训练单个模型"""
+        self.logger.info(f"{'='*50}")
+        self.logger.info(f"开始训练模型: {model_filename}")
+        self.logger.info(f"{'='*50}")
+
+        yolo_model_path = get_model_path(model_filename, self.project_dir)
+        if not yolo_model_path.exists():
+            self.logger.warning(f"预训练模型未找到 {yolo_model_path}，将使用自动下载")
+
+        dataset_manager = DatasetManager(
+            self.project_dir,
+            self.config.dataset_name,
+            self.logger
+        )
+
+        best_model_path = train_model(
+            yolo_model_path,
+            dataset_manager.get_yaml_path(),
+            self.project_dir,
+            self.config.exp_name,
+            self.config.dataset_name,
+            epochs=self.config.epochs
+        )
+
+        if best_model_path:
+            self.logger.info(f"模型 {model_filename} 训练完成")
         else:
-            logger.warning(f"Image source does not exist: {source}")
-    
-    return sorted(list(set(image_paths)))  # 去重并排序
+            self.logger.warning(f"模型 {model_filename} 训练失败")
 
-def run_predict_sahi_after_training(model_path, image_path, model_filename):
-    """
-    在训练完成后通过调用predict_sahi模块运行预测
-    """
-    try:
-        logger.info(f"Starting prediction for image: {image_path}")
-
-        # 从模型文件名中提取模型名称（去掉扩展名）
-        model_name_for_output = Path(model_filename).stem  # 如 "yolov8s-obb"
-
-        # 调用predict_sahi模块的start_predict函数，传递数据集名称和模型名称
-        start_predict(model_path, image_path, dataset_name, model_name=model_name_for_output)
-
-        logger.info("SAHI prediction completed successfully.")
-    except Exception as e:
-        logger.error(f"Error occurred when calling predict_sahi module: {str(e)}")
+        return best_model_path
 
 
-# ==================== 3. 主训练循环 ====================
+class PredictionManager:
+    """预测管理类"""
+    def __init__(self, config, logger):
+        self.config = config
+        self.project_dir = config.project_dir
+        self.logger = logger
 
-# 定位数据集
-dataset_root = project_dir / 'datasets' / dataset_name
-dataset_yaml_path = dataset_root / 'dataset.yaml'
+    @staticmethod
+    def get_image_paths(image_sources, logger):
+        """从图片路径列表或文件夹路径列表中获取所有图片路径"""
+        image_paths = []
+        for source in image_sources:
+            source_path = Path(source)
+            if source_path.is_file():
+                image_paths.append(str(source_path))
+            elif source_path.is_dir():
+                extensions = ['*.jpg', '*.jpeg', '*.png', '*.bmp', '*.tiff', '*.tif']
+                for ext in extensions:
+                    try:
+                        image_paths.extend([str(p) for p in source_path.glob(ext)])
+                    except (NotADirectoryError, PermissionError, OSError):
+                        continue
+            else:
+                logger.warning(f"图像源不存在: {source}")
 
-# 更新数据集路径配置
-update_dataset_path(dataset_yaml_path, dataset_root)
+        return sorted(list(set(image_paths)))
 
-# 存储所有训练完成的模型路径
-trained_models = []
+    def run_predictions(self, trained_models):
+        """对所有训练好的模型运行预测"""
+        all_image_paths = self.get_image_paths(self.config.prediction_images, self.logger)
+        self.logger.info(f"找到 {len(all_image_paths)} 张待预测图像")
 
-for model_filename in models_to_train:
-    logger.info(f"{'='*50}")
-    logger.info(f"Starting training for model: {model_filename}")
-    logger.info(f"{'='*50}")
+        if not all_image_paths:
+            self.logger.warning("没有找到待预测图像，跳过预测阶段")
+            return
 
-    # 获取预训练模型绝对路径
-    yolo_model_path = get_model_path(model_filename, project_dir)
-    if not yolo_model_path.exists():
-        logger.warning(f"Pretrained model not found at {yolo_model_path}, will use auto-download.")
+        self.logger.info(f"{'='*50}")
+        self.logger.info("开始对所有模型进行预测")
+        self.logger.info(f"{'='*50}")
 
-    # 执行模型训练
-    best_model_path = train_model(yolo_model_path, dataset_yaml_path, project_dir, exp_name, dataset_name, epochs=3)
+        for model_path, model_filename in trained_models:
+            self.logger.info(f"正在使用模型 {model_filename} 进行预测")
+            self._predict_single_model(model_path, model_filename, all_image_paths)
 
-    if best_model_path is None:
-        continue
+    def _predict_single_model(self, model_path, model_filename, image_paths):
+        """使用单个模型预测所有图像"""
+        model_name_for_output = Path(model_filename).stem
 
-    # 将训练完成的模型路径添加到列表中
-    trained_models.append((best_model_path, model_filename))
+        for image_path in image_paths:
+            self.logger.info(f"正在预测图像: {image_path}")
+            try:
+                start_predict(
+                    model_path,
+                    image_path,
+                    self.config.dataset_name,
+                    model_name=model_name_for_output
+                )
+                self.logger.info(f"图像 {image_path} 预测完成")
+            except Exception as e:
+                self.logger.error(f"预测图像 {image_path} 时出错: {str(e)}")
 
-# 所有模型训练完成后，统一进行预测
-logger.info("="*50)
-logger.info("All training completed. Starting unified prediction for all models and images...")
-logger.info("="*50)
 
-# 获取所有图片路径
-all_image_paths = get_image_paths(prediction_images)
-logger.info(f"Found {len(all_image_paths)} images to predict")
+class TrainPredictPipeline:
+    """训练预测流水线主类"""
+    def __init__(self, project_dir=None):
+        self.project_dir = project_dir or Path(__file__).resolve().parent.parent
+        self.logger = get_project_logger('train_predict_pipeline')
+        self.logger.info(f"项目根目录: {self.project_dir}")
 
-for model_path, model_filename in trained_models:
-    logger.info(f"Running prediction for model: {model_filename}")
-    for image_path in all_image_paths:
-        run_predict_sahi_after_training(model_path, image_path, model_filename)
+        self.config = TrainingPipelineConfig(self.project_dir)
 
-logger.info("所有训练任务和预测任务已完成！")
+    def load_config(self, models, dataset_name, exp_name, prediction_images, epochs=3):
+        """加载配置"""
+        self.config.set_models(models)
+        self.config.set_dataset(dataset_name)
+        self.config.set_experiment(exp_name)
+        self.config.set_prediction_images(prediction_images)
+        self.config.set_epochs(epochs)
+        self.config.validate()
+
+    def run(self):
+        """执行完整的训练预测流水线"""
+        self.logger.info(f"{'='*60}")
+        self.logger.info("开始执行训练预测流水线")
+        self.logger.info(f"{'='*60}")
+
+        # 训练阶段
+        trainer = ModelTrainer(self.config, self.logger)
+        trained_models = trainer.train_all_models()
+
+        if not trained_models:
+            self.logger.error("没有成功训练的模型，终止流水线")
+            return
+
+        # 预测阶段
+        predictor = PredictionManager(self.config, self.logger)
+        predictor.run_predictions(trained_models)
+
+        self.logger.info(f"{'='*60}")
+        self.logger.info("所有训练任务和预测任务已完成！")
+        self.logger.info(f"{'='*60}")
+
+
+def main():
+    """主函数：配置并运行训练预测流水线"""
+    pipeline = TrainPredictPipeline()
+
+    # 配置流水线参数
+    models = [
+        "yolov8s-obb.pt",
+        "yolo11s-obb.pt",
+        "yolo26s-obb.pt",
+    ]
+
+    dataset_name = "booth_seg"
+    exp_name = 'booth_obb_v1'
+
+    project_dir = pipeline.project_dir
+    prediction_images = [
+        f"{project_dir}/images/2024年展位图.jpg",
+        f"{project_dir}/images/第十一届世界猪业博览会.jpeg",
+        f"{project_dir}/images/长沙国际会展中心.jpg",
+        f"{project_dir}/images/2020畜博会.png",
+    ]
+
+    # 加载配置并运行
+    pipeline.load_config(
+        models=models,
+        dataset_name=dataset_name,
+        exp_name=exp_name,
+        prediction_images=prediction_images,
+        epochs=3
+    )
+    pipeline.run()
+
+
+if __name__ == "__main__":
+    main()
