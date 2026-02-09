@@ -2,8 +2,16 @@
 设备工具模块
 统一处理计算设备（CPU/GPU）相关逻辑
 """
-import torch
 from typing import Union, Optional
+
+
+def _import_torch():
+    """延迟导入 torch，返回 torch 模块或 None"""
+    try:
+        import torch
+        return torch
+    except ImportError:
+        return None
 
 
 def get_device(device: Optional[Union[str, int]] = None) -> str:
@@ -20,6 +28,10 @@ def get_device(device: Optional[Union[str, int]] = None) -> str:
     Returns:
         设备字符串，如 "cpu" 或 "cuda:0"
     """
+    torch = _import_torch()
+    if not torch:
+        return "cpu"
+
     if device is not None:
         if isinstance(device, int):
             if torch.cuda.is_available() and device < torch.cuda.device_count():
@@ -47,11 +59,18 @@ def get_device(device: Optional[Union[str, int]] = None) -> str:
 
 def get_available_gpus() -> int:
     """获取可用的GPU数量"""
+    torch = _import_torch()
+    if not torch:
+        return 0
     return torch.cuda.device_count() if torch.cuda.is_available() else 0
 
 
 def get_gpu_info(device: str = "cuda:0") -> dict:
     """获取GPU信息"""
+    torch = _import_torch()
+    if not torch:
+        return {"available": False, "error": "torch not installed"}
+
     if not torch.cuda.is_available():
         return {"available": False}
 
@@ -71,5 +90,6 @@ def get_gpu_info(device: str = "cuda:0") -> dict:
 
 def clear_cuda_cache():
     """清理CUDA缓存"""
-    if torch.cuda.is_available():
+    torch = _import_torch()
+    if torch and torch.cuda.is_available():
         torch.cuda.empty_cache()
