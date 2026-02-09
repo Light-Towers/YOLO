@@ -510,7 +510,7 @@ def process_dataset(
             results['kept_complete'] += result['kept_complete']
             results['skipped_incomplete'] += result['skipped_incomplete']
 
-            logger.info(f"✅ {json_stem} 完成: {len(result['train_tiles'])} 训练切片, {len(result['val_tiles'])} 验证切片")
+            logger.info(f"✅ {json_stem} 完成: {result['train_tiles']} 训练切片, {result['val_tiles']} 验证切片")
 
         except FileNotFoundError as e:
             logger.error(f"❌ {json_stem} 跳过: {e}")
@@ -666,18 +666,19 @@ names:
 
 if __name__ == "__main__":
     # 模式1: 处理单个文件
-    process_dataset("annotations/红木.json")
+    # process_dataset("annotations/红木.json")
 
     # 模式2: 批量处理文件夹
     # process_dataset("annotations")
 
     # 模式3: 批量处理 + 合并手动标注数据集
-    # process_dataset(
-    #     input_source="annotations",
-    #     merge_manual_datasets=True,
-    #     final_output_dir="datasets/booth_final_merged",
-    #     clean_temp=True,
-    #     tile_size=640,
-    #     overlap=200,
-    # )
+    process_dataset(
+        input_source="annotations/红木.json",
+        merge_manual_datasets=True,
+        manual_datasets_dir="datasets/manual_booth_annotations",
+        final_output_dir="datasets/booth_final_merged",
+        clean_temp=True,
+        tile_size=640,
+        overlap=200,
+    )
 
