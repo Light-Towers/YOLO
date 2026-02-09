@@ -39,63 +39,27 @@ class Tiler:
     """
 
     def __init__(self, config: Dict[str, Any]):
-        self.config = config
         self.image_path = Path(config["image_path"])
         self.json_path = Path(config["json_path"])
-        # 对输出目录名进行中文转拼音处理
-        original_output_dir = config["output_dir"]
-        self.output_dir_name = self._convert_chinese_to_pinyin(Path(original_output_dir).name)
-        self.output_dir = Path(original_output_dir).parent / self.output_dir_name
+        self.output_dir = Path(config["output_dir"])
         self.tile_size = config.get("tile_size", DATASET_CONSTANTS.DEFAULT_TILE_SIZE)
         self.overlap = config.get("overlap", DATASET_CONSTANTS.DEFAULT_OVERLAP)
-        self.split_ratio = config.get("split_ratio", DATASET_CONSTANTS.DEFAULT_TRAIN_RATIO)
-        self.min_val_tiles = config.get("min_val_tiles", DATASET_CONSTANTS.DEFAULT_MIN_VAL_TILES)
         self.class_names = config.get("class_names", ["booth"])
-        self.dataset_name = self._convert_chinese_to_pinyin(config.get("dataset_name", "fixed_dataset"))
-
-        # 新增配置：最小保留比例（展位面积在切片内的比例）
         self.min_area_ratio = config.get("min_area_ratio", DATASET_CONSTANTS.DEFAULT_MIN_AREA_RATIO)
-        # 新增配置：是否只保留完整的4点多边形
         self.keep_only_complete = config.get("keep_only_complete", True)
-        # 新增配置：是否保存JSON格式标注
         self.save_json = config.get("save_json", False)
 
-        self._create_output_structure()
+        safe_mkdir(self.output_dir)
 
         self.img = cv2.imread(str(self.image_path))
         if self.img is None:
             raise ValueError(f"无法读取图像: {self.image_path}")
 
-        # 使用工具函数读取JSON
         self.labelme_data = read_json(self.json_path)
 
         logger.info(f"🖼️  原图尺寸: {self.img.shape[1]}x{self.img.shape[0]}")
         logger.info(f"🏷️  标注对象数量: {len(self.labelme_data['shapes'])}")
-        logger.info(f"📊 切片参数: size={self.tile_size}, overlap={self.overlap}")
-        logger.info(f"⚙️  只保留完整标注: {self.keep_only_complete}")
-        logger.info(f"⚙️  最小面积比例: {self.min_area_ratio:.0%}")
         logger.info(f"📁 输出目录: {self.output_dir}")
-
-    def _create_output_structure(self):
-        """创建输出目录结构"""
-        # 直接输出到根目录
-        safe_mkdir(self.output_dir)
-        logger.info(f"✅ 已创建数据集结构: {self.output_dir}")
-
-    def _generate_yaml_content(self) -> str:
-        path_str = str(self.output_dir.absolute())
-        names_block = "names:\n"
-        for i, name in enumerate(self.class_names):
-            names_block += f"  {i}: {name}\n"
-
-        return f"""# {self.dataset_name} - 修复版YOLO数据集配置
-path: {path_str}
-train: images/train
-val: images/val
-
-# 类别
-{names_block}
-"""
 
     def _get_all_tiles(self) -> List[Tuple[int, int, int, int, int]]:
         """获取所有切片位置"""
@@ -107,20 +71,6 @@ val: images/val
             overlap=self.overlap
         )
 
-    def _assign_splits(self, tiles: list) -> Dict[str, list]:
-        """分配训练/验证集"""
-        total = len(tiles)
-        val_count = max(self.min_val_tiles, int(total * (1 - self.split_ratio)))
-        
-        if total <= 2:
-            val_count = 1
-        
-        train_tiles = tiles[:-val_count] if val_count < total else tiles[:1]
-        val_tiles = tiles[-val_count:] if val_count > 0 else [tiles[-1]]
-
-        logger.info(f"📊 数据集划分: 训练集 {len(train_tiles)}, 验证集 {len(val_tiles)}")
-        return {'train': train_tiles, 'val': val_tiles}
-
     def _is_polygon_complete_in_tile(self, poly: Polygon, tile_box: box) -> bool:
         """检查多边形是否完整在切片内"""
         if not poly.intersects(tile_box):
@@ -131,20 +81,6 @@ val: images/val
         area_ratio = intersection.area / poly.area if poly.area > 0 else 0
         
         return area_ratio >= self.min_area_ratio
-
-    # 添加中文转拼音方法
-    def _convert_chinese_to_pinyin(self, text):
-        """将中文转换为拼音"""
-        if not text:
-            return text
-
-        try:
-            pinyin_list = lazy_pinyin(text)
-            result = ''.join(pinyin_list).lower()
-            # logger.info(f"🔤 '{text}' -> '{result}'")
-            return result
-        except:
-            return text
 
     def _convert_annotation_fixed(self, shape: dict, x_offset: int, y_offset: int,
                                    tile_w: int, tile_h: int) -> Union[dict, None]:
@@ -235,43 +171,26 @@ val: images/val
         all_tiles = self._get_all_tiles()
         logger.info(f"🔍 总计 {len(all_tiles)} 个切片位置")
 
-        splits = self._assign_splits(all_tiles)
-        results = {'train': [], 'val': []}
-        
-        # 统计信息
-        stats = {
-            'total_annotations': 0,
-            'skipped_incomplete': 0,
-            'kept_complete': 0
-        }
+        stats = {'total': 0, 'kept': 0, 'skipped': 0}
 
-        for split_name, tiles in splits.items():
-            for tile_id, x, y, x_end, y_end in tiles:
-                # 处理单个切片
-                tile_result = self._process_tile(split_name, tile_id, x, y, x_end, y_end, stats)
-                results[split_name].append(tile_result)
+        for tile_id, x, y, x_end, y_end in all_tiles:
+            self._process_tile(tile_id, x, y, x_end, y_end, stats)
 
-        # 打印统计
-        self._print_statistics(all_tiles, results, stats)
+        logger.info(f"📊 切分完成: {len(all_tiles)} 切片, 保留 {stats['kept']} 个标注")
 
         return {
             'output_dir': str(self.output_dir),
-            'yaml_path': str(self.output_dir / "dataset.yaml"),
-            'train_tiles': len(results['train']),
-            'val_tiles': len(results['val']),
-            'kept_complete': stats['kept_complete'],
-            'skipped_incomplete': stats['skipped_incomplete']
+            'total_tiles': len(all_tiles),
+            'kept': stats['kept'],
+            'skipped': stats['skipped']
         }
-    
-    def _process_tile(self, split_name: str, tile_id: int, x: int, y: int, x_end: int, y_end: int, stats: dict) -> dict:
+
+    def _process_tile(self, tile_id: int, x: int, y: int, x_end: int, y_end: int, stats: dict) -> dict:
         """处理单个切片"""
         tile_w, tile_h = x_end - x, y_end - y
         tile_img = self.img[y:y_end, x:x_end]
 
-        # 对原始图片文件名进行中文转拼音处理
-        original_stem = self.image_path.stem
-        converted_stem = self._convert_chinese_to_pinyin(original_stem)
-        tile_name = f"{converted_stem}_tile_{tile_id:04d}.png"
+        tile_name = f"{_convert_to_pinyin(self.image_path.stem)}_tile_{tile_id:04d}.png"
 
         # 保存图像（同级目录）
         img_path = self.output_dir / tile_name
@@ -280,40 +199,29 @@ val: images/val
         # 处理标注
         annotations = []
         for shape in self.labelme_data["shapes"]:
-            # 只处理多边形和旋转框
-            if shape["shape_type"] != "polygon" and shape["shape_type"] != "rotation":
+            if shape["shape_type"] not in ("polygon", "rotation"):
                 continue
-
-            stats['total_annotations'] += 1
+            stats['total'] += 1
             ann = self._convert_annotation_fixed(shape, x, y, tile_w, tile_h)
-
             if ann:
                 annotations.append(ann)
-                stats['kept_complete'] += 1
+                stats['kept'] += 1
             else:
-                stats['skipped_incomplete'] += 1
+                stats['skipped'] += 1
 
-        # 保存标注（同级目录）
-        lbl_path = self.output_dir / tile_name.replace(".png", ".txt")
-        with open(lbl_path, 'w') as f:
+        # 保存标注
+        with open(self.output_dir / tile_name.replace(".png", ".txt"), 'w') as f:
             for ann in annotations:
                 points_str = " ".join([f"{px:.6f} {py:.6f}" for px, py in ann["points"]])
                 f.write(f"0 {points_str}\n")
 
-        # 保存JSON格式标注（用于标注工具检查）
+        # 保存JSON格式标注
         if self.save_json:
-            self._save_json_annotation(split_name, tile_name, tile_w, tile_h, annotations)
+            self._save_json_annotation(tile_name, tile_w, tile_h, annotations)
 
-        status = "✅" if annotations else "🟡"
-        logger.info(f"{status} {split_name}: {tile_name} - {len(annotations)} 个完整展位")
+        return {'name': tile_name, 'annotations': len(annotations)}
 
-        return {
-            'name': tile_name,
-            'annotations': len(annotations),
-            'position': (x, y, x_end, y_end)
-        }
-
-    def _save_json_annotation(self, split_name: str, tile_name: str, tile_w: int, tile_h: int, annotations: List[dict]):
+    def _save_json_annotation(self, tile_name: str, tile_w: int, tile_h: int, annotations: List[dict]):
         """保存JSON格式标注（用于标注工具检查）"""
         # 转换为像素坐标
         shapes = []
@@ -340,21 +248,7 @@ val: images/val
         }
 
         # 保存JSON文件（同级目录）
-        json_path = self.output_dir / tile_name.replace(".png", ".json")
-        write_json(json_path, json_data, indent=2)
-
-    def _print_statistics(self, all_tiles: list, results: dict, stats: dict):
-        """打印统计信息"""
-        logger.info("\n" + "=" * 60)
-        logger.info("📊 切分统计报告")
-        logger.info("=" * 60)
-        logger.info(f"总切片数: {len(all_tiles)}")
-        logger.info(f"训练集标注: {sum(t['annotations'] for t in results['train'])}")
-        logger.info(f"验证集标注: {sum(t['annotations'] for t in results['val'])}")
-        logger.info(f"保留的完整展位: {stats['kept_complete']}")
-        logger.info(f"跳过的不完整展位: {stats['skipped_incomplete']}")
-        logger.info(f"保留率: {stats['kept_complete'] / max(stats['total_annotations'], 1):.1%}")
-        logger.info("=" * 60)
+        write_json(self.output_dir / tile_name.replace(".png", ".json"), json_data, indent=2)
 
 
 def find_matching_image(base_name: str, image_dir: Path) -> Path:
@@ -460,14 +354,7 @@ def process_dataset(
     tmp_base_dir = Path("datasets/tmp")
     safe_mkdir(tmp_base_dir)
 
-    results = {
-        'processed': 0,
-        'failed': 0,
-        'train_tiles': 0,
-        'val_tiles': 0,
-        'kept_complete': 0,
-        'skipped_incomplete': 0,
-    }
+    results = {'processed': 0, 'failed': 0, 'total_tiles': 0, 'kept': 0}
 
     logger.info("\n" + "=" * 60)
     logger.info("📋 步骤1: 切分 JSON 文件")
@@ -507,12 +394,10 @@ def process_dataset(
 
             # 累计统计
             results['processed'] += 1
-            results['train_tiles'] += result['train_tiles']
-            results['val_tiles'] += result['val_tiles']
-            results['kept_complete'] += result['kept_complete']
-            results['skipped_incomplete'] += result['skipped_incomplete']
+            results['total_tiles'] += result['total_tiles']
+            results['kept'] += result['kept']
 
-            logger.info(f"✅ {json_stem} 完成: {result['train_tiles']} 训练切片, {result['val_tiles']} 验证切片")
+            logger.info(f"✅ {json_stem} 完成: {result['total_tiles']} 切片")
 
         except FileNotFoundError as e:
             logger.error(f"❌ {json_stem} 跳过: {e}")
@@ -573,6 +458,8 @@ def process_dataset(
 
         # 处理 tmp 目录中的所有 JSON（递归搜索子目录）
         json_count = 0
+        train_count = 0
+        val_count = 0
         for json_file in tmp_base_dir.rglob('*.json'):
             try:
                 json_stem = json_file.stem
@@ -630,11 +517,11 @@ def process_dataset(
                     if is_train:
                         shutil.copy2(image_file, final_train_img_dir / image_file.name)
                         (final_train_lbl_dir / f"{json_stem}.txt").write_text(label_content, encoding='utf-8')
-                        results['train_tiles'] += 1
+                        train_count += 1
                     else:
                         shutil.copy2(image_file, final_val_img_dir / image_file.name)
                         (final_val_lbl_dir / f"{json_stem}.txt").write_text(label_content, encoding='utf-8')
-                        results['val_tiles'] += 1
+                        val_count += 1
                     json_count += 1
                 except Exception as copy_err:
                     logger.error(f"❌ 复制失败 {json_stem}: {copy_err}")
@@ -684,12 +571,8 @@ names:
         logger.info("\n" + "=" * 60)
         logger.info("📊 处理统计")
         logger.info("=" * 60)
-        logger.info(f"处理文件: {results['processed']}")
-        logger.info(f"失败文件: {results['failed']}")
-        logger.info(f"训练集切片: {results['train_tiles']}")
-        logger.info(f"验证集切片: {results['val_tiles']}")
-        logger.info(f"保留完整标注: {results['kept_complete']}")
-        logger.info(f"跳过不完整: {results['skipped_incomplete']}")
+        logger.info(f"处理文件: {results['processed']}, 失败: {results['failed']}")
+        logger.info(f"总切片: {results['total_tiles']}, 保留标注: {results['kept']}")
         logger.info("=" * 60)
 
     return results
@@ -700,11 +583,11 @@ if __name__ == "__main__":
     # process_dataset("annotations/红木.json")
 
     # 模式2: 批量处理文件夹
-    # process_dataset("annotations")
+    # process_dataset("annotations/红木.json,annotations/11届猪业.json")
 
     # 模式3: 批量处理 + 合并手动标注数据集
     process_dataset(
-        input_source="annotations/",
+        input_source="annotations",
         merge_manual_datasets=True,
         manual_datasets_dir="datasets/manual_booth_annotations",
         final_output_dir="datasets/booth_final_merged",
