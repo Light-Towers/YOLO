@@ -4,6 +4,7 @@
 """
 from pathlib import Path
 from typing import Dict, Any, List, Tuple, Union
+import shutil
 import cv2
 from shapely.geometry import Polygon, box
 import shapely.affinity as affinity
@@ -374,77 +375,309 @@ def find_matching_image(base_name: str, image_dir: Path) -> Path:
     raise FileNotFoundError(f"找不到与 {base_name} 对应的图片文件")
 
 
-def process_json_file(json_path: Path, image_dir: Path = Path("images")):
-    """处理单个JSON文件"""
-    # 获取JSON文件的基础名称（不含扩展名）
-    json_stem = json_path.stem
-    image_path = find_matching_image(json_stem, image_dir)
+# 已删除 process_json_file 函数，使用 process_dataset() 统一处理
 
-    config = {
-        "image_path": str(image_path),
-        "json_path": str(json_path),
-        "output_dir": f"datasets/{json_stem}",  # 根据JSON文件名生成输出目录名
-        
-        # 切片参数 - 关键修改
-        "tile_size": 640,
-        "overlap": 200,  # 增大overlap，确保更多展位在某个切片中是完整的        
-        # 数据集参数
-        "split_ratio": 0.8,
-        "min_val_tiles": 3,
-        "class_names": ["booth"],  # 使用更有意义的类名
-        "dataset_name": json_stem,
-        "min_area_ratio": 0.85,  # 展位85%以上在切片内才保留
-        "keep_only_complete": True,  # 只保留完整的4点四边形
-        "save_json": False,  # 是否保存JSON格式标注（默认关闭）
-    }
+def process_dataset(
+    input_source: str,
+    image_dir: str = "images",
+    output_base_dir: str = "datasets",
+    final_output_dir: str = None,
+    temp_dir: str = None,
+    clean_temp: bool = True,
+    tile_size: int = 640,
+    overlap: int = 200,
+    split_ratio: float = 0.8,
+    min_area_ratio: float = 0.85,
+    merge_manual_datasets: bool = False,
+    manual_datasets_dir: str = "datasets",
+) -> dict:
+    """
+    通用的数据集处理函数
 
-    logger.info(f"🔧 使用配置: {json_stem}")
-    logger.info(f"📄 JSON文件: {json_path.name}")
-    logger.info(f"🖼️  匹配图片: {image_path.name}")
+    输入规则：
+    - 单个JSON文件: input_source="annotations/红木.json" → 处理单个文件
+    - 文件夹: input_source="annotations" → 批量处理文件夹下所有JSON
+    - 逗号分隔: input_source="file1.json,file2.json" → 批量处理多个文件
 
-    # 创建切分器并执行
-    tiler = Tiler(config)
-    result = tiler.process()
+    Args:
+        input_source: 输入源（JSON文件/文件夹/逗号分隔列表）
+        image_dir: 图片目录（默认: images）
+        output_base_dir: 输出基础目录（默认: datasets）
+        final_output_dir: 最终合并输出目录（仅在 merge_manual_datasets=True 时使用）
+        temp_dir: 临时输出目录（仅在 merge_manual_datasets=True 时使用）
+        clean_temp: 是否清理临时目录（仅在 merge_manual_datasets=True 时使用）
+        tile_size: 切片大小
+        overlap: 重叠区域大小
+        split_ratio: 训练集比例
+        min_area_ratio: 最小保留比例
+        merge_manual_datasets: 是否合并手动标注数据集（批量模式时）
 
-    logger.info(f"\n✅ 数据集已生成: {result['output_dir']}")
-    logger.info(f"📄 YAML配置: {result['yaml_path']}")
-
-def main(input_source: str = r"annotations/11-ZhuYe.json"):
-    """主函数 - 用于切分"""
-    image_dir = Path("images")
+    Returns:
+        统计信息字典
+    """
     input_path = Path(input_source)
+    image_dir = Path(image_dir)
+    temp_dir = Path(temp_dir) if temp_dir else Path("datasets/temp_tiler_output")
+
+    # 收集需要处理的JSON文件
+    json_files = []
 
     # 处理单个JSON文件
     if input_path.is_file() and input_path.suffix.lower() == '.json':
         logger.info(f"📁 处理单个JSON文件: {input_path}")
-        process_json_file(input_path, image_dir)
+        json_files = [input_path]
+
     # 处理文件夹
     elif input_path.is_dir():
         logger.info(f"📂 处理文件夹: {input_path}")
         json_files = list(input_path.glob('*.json'))
         if not json_files:
             logger.warning(f"⚠️  在 {input_path} 中未找到JSON文件")
-        else:
-            logger.info(f"🔍 找到 {len(json_files)} 个JSON文件")
-            for json_file in json_files:
-                logger.info(f"  📄 {json_file.name}")
-                process_json_file(json_file, image_dir)
+            return {"error": "未找到JSON文件"}
+        logger.info(f"🔍 找到 {len(json_files)} 个JSON文件")
+
     # 处理多个JSON文件列表（逗号分隔）
     elif ',' in input_source:
         logger.info("📚 处理多个JSON文件列表")
         for path_str in input_source.split(','):
             json_file = Path(path_str.strip())
             if json_file.is_file():
+                json_files.append(json_file)
                 logger.info(f"  📄 {json_file.name}")
-                process_json_file(json_file, image_dir)
             else:
                 logger.error(f"  ❌ 文件不存在: {json_file}")
+
+        if not json_files:
+            logger.error("❌ 没有有效的JSON文件")
+            return {"error": "没有有效的JSON文件"}
     else:
         logger.error(f"❌ 输入路径无效: {input_path}")
         logger.error("💡 请提供有效的JSON文件路径、文件夹路径或逗号分隔的多个文件路径")
+        return {"error": "输入路径无效"}
+
+    # ========== 处理JSON文件 ==========
+    tilered_datasets = []
+    results = {
+        'processed': 0,
+        'failed': 0,
+        'train_tiles': 0,
+        'val_tiles': 0,
+        'kept_complete': 0,
+        'skipped_incomplete': 0,
+    }
+
+    for json_file in sorted(json_files):
+        json_stem = json_file.stem
+        logger.info(f"\n📄 处理: {json_stem}")
+
+        try:
+            # 查找匹配的图片
+            image_path = find_matching_image(json_stem, image_dir)
+
+            # 构建配置
+            if merge_manual_datasets:
+                # 批量+合并模式：输出到临时目录
+                output_dir = temp_dir / json_stem
+            else:
+                # 单独/批量模式：输出到独立目录
+                output_dir = Path(output_base_dir) / json_stem
+
+            config = {
+                "image_path": str(image_path),
+                "json_path": str(json_file),
+                "output_dir": str(output_dir),
+                "tile_size": tile_size,
+                "overlap": overlap,
+                "split_ratio": split_ratio,
+                "min_val_tiles": 3,
+                "class_names": ["booth"],
+                "dataset_name": json_stem,
+                "min_area_ratio": min_area_ratio,
+                "keep_only_complete": True,
+                "save_json": False,
+            }
+
+            # 创建切分器并执行
+            tiler = Tiler(config)
+            result = tiler.process()
+
+            tilered_datasets.append(Path(result['output_dir']))
+
+            # 累计统计
+            results['processed'] += 1
+            results['train_tiles'] += result['train_tiles']
+            results['val_tiles'] += result['val_tiles']
+            results['kept_complete'] += result['kept_complete']
+            results['skipped_incomplete'] += result['skipped_incomplete']
+
+            logger.info(f"✅ {json_stem} 完成: {len(result['train_tiles'])} 训练切片, {len(result['val_tiles'])} 验证切片")
+
+        except FileNotFoundError as e:
+            logger.error(f"❌ {json_stem} 跳过: {e}")
+            results['failed'] += 1
+            continue
+        except Exception as e:
+            logger.error(f"❌ {json_stem} 失败: {e}")
+            results['failed'] += 1
+            continue
+
+    # ========== 合并手动标注数据集（可选） ==========
+    if merge_manual_datasets:
+        logger.info("\n" + "=" * 60)
+        logger.info("🔗 合并手动标注数据集")
+        logger.info("=" * 60)
+
+        final_output_dir = Path(final_output_dir) if final_output_dir else Path("datasets/booth_final_merged")
+        safe_mkdir(temp_dir)
+
+        # 收集手动标注数据集
+        manual_datasets_dir = Path(manual_datasets_dir)
+        valid_datasets = []
+
+        for dataset_dir in manual_datasets_dir.iterdir():
+            if not dataset_dir.is_dir():
+                continue
+
+            required_dirs = [
+                dataset_dir / "images" / "train",
+                dataset_dir / "images" / "val",
+                dataset_dir / "labels" / "train",
+                dataset_dir / "labels" / "val",
+            ]
+
+            if all(d.exists() for d in required_dirs):
+                train_imgs = len(list((dataset_dir / "images" / "train").glob("*")))
+                val_imgs = len(list((dataset_dir / "images" / "val").glob("*")))
+
+                if train_imgs > 0 or val_imgs > 0:
+                    valid_datasets.append(dataset_dir)
+                    logger.info(f"✅ {dataset_dir.name}: {train_imgs} 训练, {val_imgs} 验证")
+
+        # 合并所有数据集
+        all_datasets = tilered_datasets + valid_datasets
+        logger.info(f"📦 待合并: {len(all_datasets)} 个")
+
+        final_train_img_dir = final_output_dir / "images" / "train"
+        final_train_lbl_dir = final_output_dir / "labels" / "train"
+        final_val_img_dir = final_output_dir / "images" / "val"
+        final_val_lbl_dir = final_output_dir / "labels" / "val"
+
+        for dir_path in [final_train_img_dir, final_train_lbl_dir, final_val_img_dir, final_val_lbl_dir]:
+            safe_mkdir(dir_path)
+
+        merge_stats = {
+            'train_images': 0,
+            'val_images': 0,
+            'train_annotations': 0,
+            'val_annotations': 0,
+            'datasets_count': 0,
+        }
+
+        for dataset_dir in all_datasets:
+            logger.info(f"\n🔗 合并: {dataset_dir.name}")
+            dataset_prefix = f"{dataset_dir.name}_"
+
+            # 训练集
+            train_img_dir = dataset_dir / "images" / "train"
+            train_lbl_dir = dataset_dir / "labels" / "train"
+
+            if train_img_dir.exists():
+                for img_file in train_img_dir.glob("*"):
+                    if img_file.is_file():
+                        new_name = f"{dataset_prefix}{img_file.name}"
+                        shutil.copy2(img_file, final_train_img_dir / new_name)
+
+                        label_file = train_lbl_dir / img_file.with_suffix('.txt').name
+                        if label_file.exists():
+                            shutil.copy2(label_file, final_train_lbl_dir / new_name)
+                            merge_stats['train_annotations'] += 1
+
+                merge_stats['train_images'] += len(list(train_img_dir.glob("*")))
+
+            # 验证集
+            val_img_dir = dataset_dir / "images" / "val"
+            val_lbl_dir = dataset_dir / "labels" / "val"
+
+            if val_img_dir.exists():
+                for img_file in val_img_dir.glob("*"):
+                    if img_file.is_file():
+                        new_name = f"{dataset_prefix}{img_file.name}"
+                        shutil.copy2(img_file, final_val_img_dir / new_name)
+
+                        label_file = val_lbl_dir / img_file.with_suffix('.txt').name
+                        if label_file.exists():
+                            shutil.copy2(label_file, final_val_lbl_dir / new_name)
+                            merge_stats['val_annotations'] += 1
+
+                merge_stats['val_images'] += len(list(val_img_dir.glob("*")))
+
+            merge_stats['datasets_count'] += 1
+
+        # 生成 dataset.yaml
+        path_str = str(final_output_dir.absolute())
+        yaml_content = f"""# 最终合并数据集
+path: {path_str}
+train: images/train
+val: images/val
+
+names:
+  0: booth
+"""
+        (final_output_dir / "dataset.yaml").write_text(yaml_content, encoding='utf-8')
+
+        logger.info("\n" + "=" * 60)
+        logger.info("📊 合并统计")
+        logger.info("=" * 60)
+        logger.info(f"合并数据集: {merge_stats['datasets_count']}")
+        logger.info(f"训练集图片: {merge_stats['train_images']}")
+        logger.info(f"验证集图片: {merge_stats['val_images']}")
+        logger.info(f"训练集标注: {merge_stats['train_annotations']}")
+        logger.info(f"验证集标注: {merge_stats['val_annotations']}")
+        logger.info(f"输出: {final_output_dir}")
+        logger.info("=" * 60)
+
+        # 清理临时目录
+        if clean_temp and temp_dir.exists():
+            logger.info(f"\n🧹 清理临时目录: {temp_dir}")
+            try:
+                shutil.rmtree(temp_dir)
+                logger.info("✅ 临时目录已删除")
+            except Exception as e:
+                logger.warning(f"⚠️  清理临时目录失败: {e}")
+
+        # 合并统计信息
+        results.update(merge_stats)
+
+    # ========== 打印最终统计 ==========
+    if not merge_manual_datasets:
+        logger.info("\n" + "=" * 60)
+        logger.info("📊 处理统计")
+        logger.info("=" * 60)
+        logger.info(f"处理文件: {results['processed']}")
+        logger.info(f"失败文件: {results['failed']}")
+        logger.info(f"训练集切片: {results['train_tiles']}")
+        logger.info(f"验证集切片: {results['val_tiles']}")
+        logger.info(f"保留完整标注: {results['kept_complete']}")
+        logger.info(f"跳过不完整: {results['skipped_incomplete']}")
+        logger.info("=" * 60)
+
+    return results
 
 
 if __name__ == "__main__":
-    # 可以在这里指定input_source参数，如果不指定则使用默认值
-    input_source = r"annotations/红木.json"
-    main(input_source)
+    # 模式1: 处理单个文件
+    process_dataset("annotations/红木.json")
+
+    # 模式2: 批量处理文件夹
+    # process_dataset("annotations")
+
+    # 模式3: 批量处理 + 合并手动标注数据集
+    # process_dataset(
+    #     input_source="annotations",
+    #     merge_manual_datasets=True,
+    #     final_output_dir="datasets/booth_final_merged",
+    #     clean_temp=True,
+    #     tile_size=640,
+    #     overlap=200,
+    # )
+
