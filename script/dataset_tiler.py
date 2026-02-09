@@ -5,6 +5,7 @@
 from pathlib import Path
 from typing import Dict, Any, List, Tuple, Union
 import shutil
+import json
 import cv2
 from shapely.geometry import Polygon, box
 import shapely.affinity as affinity
@@ -21,6 +22,11 @@ from src.utils.image_tile_utils import TileCalculator
 from src.core import DATASET_CONSTANTS
 
 logger = get_logger('dataset_tiler')
+
+
+def _convert_to_pinyin(name: str) -> str:
+    """将中文名转换为拼音"""
+    return "".join(lazy_pinyin(name))
 
 class Tiler:
     """
@@ -72,14 +78,8 @@ class Tiler:
 
     def _create_output_structure(self):
         """创建输出目录结构"""
-        for split in ['train', 'val']:
-            safe_mkdir(self.output_dir / "images" / split)
-            safe_mkdir(self.output_dir / "labels" / split)
-            if self.save_json:
-                safe_mkdir(self.output_dir / "json_annotations" / split)
-
-        yaml_content = self._generate_yaml_content()
-        (self.output_dir / "dataset.yaml").write_text(yaml_content, encoding='utf-8')
+        # 直接输出到根目录
+        safe_mkdir(self.output_dir)
         logger.info(f"✅ 已创建数据集结构: {self.output_dir}")
 
     def _generate_yaml_content(self) -> str:
@@ -267,14 +267,14 @@ val: images/val
         """处理单个切片"""
         tile_w, tile_h = x_end - x, y_end - y
         tile_img = self.img[y:y_end, x:x_end]
-        
+
         # 对原始图片文件名进行中文转拼音处理
         original_stem = self.image_path.stem
         converted_stem = self._convert_chinese_to_pinyin(original_stem)
         tile_name = f"{converted_stem}_tile_{tile_id:04d}.png"
 
-        # 保存图像
-        img_path = self.output_dir / "images" / split_name / tile_name
+        # 保存图像（同级目录）
+        img_path = self.output_dir / tile_name
         cv2.imwrite(str(img_path), tile_img)
 
         # 处理标注
@@ -286,15 +286,15 @@ val: images/val
 
             stats['total_annotations'] += 1
             ann = self._convert_annotation_fixed(shape, x, y, tile_w, tile_h)
-            
+
             if ann:
                 annotations.append(ann)
                 stats['kept_complete'] += 1
             else:
                 stats['skipped_incomplete'] += 1
 
-        # 保存标注
-        lbl_path = self.output_dir / "labels" / split_name / tile_name.replace(".png", ".txt")
+        # 保存标注（同级目录）
+        lbl_path = self.output_dir / tile_name.replace(".png", ".txt")
         with open(lbl_path, 'w') as f:
             for ann in annotations:
                 points_str = " ".join([f"{px:.6f} {py:.6f}" for px, py in ann["points"]])
@@ -339,9 +339,9 @@ val: images/val
             "imageWidth": tile_w
         }
 
-        # 保存JSON文件
-        json_path = self.output_dir / "json_annotations" / split_name / tile_name.replace(".png", ".json")
-        write_json(json_path, json_data, ensure_ascii=False, indent=2)
+        # 保存JSON文件（同级目录）
+        json_path = self.output_dir / tile_name.replace(".png", ".json")
+        write_json(json_path, json_data, indent=2)
 
     def _print_statistics(self, all_tiles: list, results: dict, stats: dict):
         """打印统计信息"""
@@ -455,8 +455,11 @@ def process_dataset(
         logger.error("💡 请提供有效的JSON文件路径、文件夹路径或逗号分隔的多个文件路径")
         return {"error": "输入路径无效"}
 
-    # ========== 处理JSON文件 ==========
-    tilered_datasets = []
+    # ========== 步骤1: 切分 input_source 中的 JSON 文件（生成切片图片 + JSON） ==========
+    # 切分后的数据放到 datasets/tmp/tiling_xx 下
+    tmp_base_dir = Path("datasets/tmp")
+    safe_mkdir(tmp_base_dir)
+
     results = {
         'processed': 0,
         'failed': 0,
@@ -466,6 +469,10 @@ def process_dataset(
         'skipped_incomplete': 0,
     }
 
+    logger.info("\n" + "=" * 60)
+    logger.info("📋 步骤1: 切分 JSON 文件")
+    logger.info("=" * 60)
+
     for json_file in sorted(json_files):
         json_stem = json_file.stem
         logger.info(f"\n📄 处理: {json_stem}")
@@ -474,13 +481,10 @@ def process_dataset(
             # 查找匹配的图片
             image_path = find_matching_image(json_stem, image_dir)
 
-            # 构建配置
-            if merge_manual_datasets:
-                # 批量+合并模式：输出到临时目录
-                output_dir = temp_dir / json_stem
-            else:
-                # 单独/批量模式：输出到独立目录
-                output_dir = Path(output_base_dir) / json_stem
+            # 切分输出目录：datasets/tmp/tiling_xx（xx为拼音名）
+            pinyin_name = _convert_to_pinyin(json_stem)
+            output_dir = tmp_base_dir / f"tiling_{pinyin_name}"
+            safe_mkdir(output_dir)
 
             config = {
                 "image_path": str(image_path),
@@ -494,14 +498,12 @@ def process_dataset(
                 "dataset_name": json_stem,
                 "min_area_ratio": min_area_ratio,
                 "keep_only_complete": True,
-                "save_json": False,
+                "save_json": True,  # 保存切片后的 JSON
             }
 
             # 创建切分器并执行
             tiler = Tiler(config)
             result = tiler.process()
-
-            tilered_datasets.append(Path(result['output_dir']))
 
             # 累计统计
             results['processed'] += 1
@@ -521,42 +523,46 @@ def process_dataset(
             results['failed'] += 1
             continue
 
-    # ========== 合并手动标注数据集（可选） ==========
+    logger.info(f"\n📦 步骤1完成: {len(list(tmp_base_dir.glob('tiling_*')))} 个目录")
+
+    # ========== 步骤2: 合并 manual_datasets_dir 中的标注数据 ==========
     if merge_manual_datasets:
         logger.info("\n" + "=" * 60)
-        logger.info("🔗 合并手动标注数据集")
+        logger.info("📋 步骤2: 合并手动标注数据")
+        logger.info("=" * 60)
+
+        # 合并 manual_datasets_dir 中的标注数据
+        if manual_datasets_dir:
+            manual_dir = Path(manual_datasets_dir)
+            if manual_dir.is_dir():
+                logger.info(f"📂 合并手动标注数据: {manual_dir}")
+
+                # 创建 manual 目录存放手动标注数据
+                manual_output_dir = tmp_base_dir / "manual"
+                safe_mkdir(manual_output_dir)
+
+                # manual_datasets_dir 是 JSON+图片格式，直接复制到 manual 目录
+                for json_file in manual_dir.glob('*.json'):
+                    shutil.copy2(json_file, manual_output_dir)
+                    # 查找匹配图片
+                    json_stem = json_file.stem
+                    for ext in ['.png', '.jpg', '.jpeg']:
+                        img_file = manual_dir / f"{json_stem}{ext}"
+                        if img_file.exists():
+                            shutil.copy2(img_file, manual_output_dir)
+                            break
+
+        # 统计所有子目录中的 JSON 和图片
+        total_json = sum(1 for _ in tmp_base_dir.rglob('*.json'))
+        total_img = sum(1 for _ in tmp_base_dir.rglob('*.png')) + sum(1 for _ in tmp_base_dir.rglob('*.jpg'))
+        logger.info(f"\n📦 步骤2完成: {total_json} 个 JSON, {total_img} 张图片")
+
+        # ========== 步骤3: 将 tmp 目录转换为 YOLO 格式数据集 ==========
+        logger.info("\n" + "=" * 60)
+        logger.info("📋 步骤3: 转换为 YOLO 格式数据集")
         logger.info("=" * 60)
 
         final_output_dir = Path(final_output_dir) if final_output_dir else Path("datasets/booth_final_merged")
-        safe_mkdir(temp_dir)
-
-        # 收集手动标注数据集
-        manual_datasets_dir = Path(manual_datasets_dir)
-        valid_datasets = []
-
-        for dataset_dir in manual_datasets_dir.iterdir():
-            if not dataset_dir.is_dir():
-                continue
-
-            required_dirs = [
-                dataset_dir / "images" / "train",
-                dataset_dir / "images" / "val",
-                dataset_dir / "labels" / "train",
-                dataset_dir / "labels" / "val",
-            ]
-
-            if all(d.exists() for d in required_dirs):
-                train_imgs = len(list((dataset_dir / "images" / "train").glob("*")))
-                val_imgs = len(list((dataset_dir / "images" / "val").glob("*")))
-
-                if train_imgs > 0 or val_imgs > 0:
-                    valid_datasets.append(dataset_dir)
-                    logger.info(f"✅ {dataset_dir.name}: {train_imgs} 训练, {val_imgs} 验证")
-
-        # 合并所有数据集
-        all_datasets = tilered_datasets + valid_datasets
-        logger.info(f"📦 待合并: {len(all_datasets)} 个")
-
         final_train_img_dir = final_output_dir / "images" / "train"
         final_train_lbl_dir = final_output_dir / "labels" / "train"
         final_val_img_dir = final_output_dir / "images" / "val"
@@ -565,53 +571,80 @@ def process_dataset(
         for dir_path in [final_train_img_dir, final_train_lbl_dir, final_val_img_dir, final_val_lbl_dir]:
             safe_mkdir(dir_path)
 
-        merge_stats = {
-            'train_images': 0,
-            'val_images': 0,
-            'train_annotations': 0,
-            'val_annotations': 0,
-            'datasets_count': 0,
-        }
+        # 处理 tmp 目录中的所有 JSON（递归搜索子目录）
+        json_count = 0
+        for json_file in tmp_base_dir.rglob('*.json'):
+            try:
+                json_stem = json_file.stem
+                json_dir = json_file.parent
+                # 查找匹配图片（在同目录）
+                image_file = None
+                for ext in ['.png', '.jpg', '.jpeg']:
+                    candidate = json_dir / f"{json_stem}{ext}"
+                    if candidate.exists():
+                        image_file = candidate
+                        break
 
-        for dataset_dir in all_datasets:
-            logger.info(f"\n🔗 合并: {dataset_dir.name}")
-            dataset_prefix = f"{dataset_dir.name}_"
+                if not image_file:
+                    logger.warning(f"⚠️  跳过 {json_stem}: 找不到匹配图片")
+                    continue
 
-            # 训练集
-            train_img_dir = dataset_dir / "images" / "train"
-            train_lbl_dir = dataset_dir / "labels" / "train"
+                # 读取 JSON 并转换为 YOLO 格式
+                with open(json_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
 
-            if train_img_dir.exists():
-                for img_file in train_img_dir.glob("*"):
-                    if img_file.is_file():
-                        new_name = f"{dataset_prefix}{img_file.name}"
-                        shutil.copy2(img_file, final_train_img_dir / new_name)
+                img_width = data.get('imageWidth', data.get('image_width', 0))
+                img_height = data.get('imageHeight', data.get('image_height', 0))
 
-                        label_file = train_lbl_dir / img_file.with_suffix('.txt').name
-                        if label_file.exists():
-                            shutil.copy2(label_file, final_train_lbl_dir / new_name)
-                            merge_stats['train_annotations'] += 1
+                if img_width == 0 or img_height == 0:
+                    # 尝试从图片获取尺寸
+                    from PIL import Image
+                    with Image.open(image_file) as img:
+                        img_width, img_height = img.size
 
-                merge_stats['train_images'] += len(list(train_img_dir.glob("*")))
+                yolo_annotations = []
+                for shape in data.get('shapes', []):
+                    label = shape.get('label', 'booth')
+                    points = shape.get('points', [])
+                    if len(points) >= 4:
+                        # 将多边形转换为归一化坐标
+                        x_coords = [p[0] / img_width for p in points]
+                        y_coords = [p[1] / img_height for p in points]
+                        yolo_ann = '0 ' + ' '.join([f"{x:.6f} {y:.6f}" for x, y in zip(x_coords, y_coords)])
+                        yolo_annotations.append(yolo_ann)
 
-            # 验证集
-            val_img_dir = dataset_dir / "images" / "val"
-            val_lbl_dir = dataset_dir / "labels" / "val"
+                # 准备标注内容
+                label_content = '\n'.join(yolo_annotations) + '\n' if yolo_annotations else ''
 
-            if val_img_dir.exists():
-                for img_file in val_img_dir.glob("*"):
-                    if img_file.is_file():
-                        new_name = f"{dataset_prefix}{img_file.name}"
-                        shutil.copy2(img_file, final_val_img_dir / new_name)
+                # 分配策略：背景图（无标注）全部放训练集，有标注的按比例分配
+                import random
+                has_annotation = len(yolo_annotations) > 0
+                if not has_annotation:
+                    # 背景图强制放训练集
+                    is_train = True
+                else:
+                    # 有标注的按 split_ratio 分配
+                    is_train = random.random() < split_ratio
 
-                        label_file = val_lbl_dir / img_file.with_suffix('.txt').name
-                        if label_file.exists():
-                            shutil.copy2(label_file, final_val_lbl_dir / new_name)
-                            merge_stats['val_annotations'] += 1
+                try:
+                    if is_train:
+                        shutil.copy2(image_file, final_train_img_dir / image_file.name)
+                        (final_train_lbl_dir / f"{json_stem}.txt").write_text(label_content, encoding='utf-8')
+                        results['train_tiles'] += 1
+                    else:
+                        shutil.copy2(image_file, final_val_img_dir / image_file.name)
+                        (final_val_lbl_dir / f"{json_stem}.txt").write_text(label_content, encoding='utf-8')
+                        results['val_tiles'] += 1
+                    json_count += 1
+                except Exception as copy_err:
+                    logger.error(f"❌ 复制失败 {json_stem}: {copy_err}")
+                    continue
 
-                merge_stats['val_images'] += len(list(val_img_dir.glob("*")))
+            except Exception as e:
+                logger.error(f"❌ 转换失败 {json_file.name}: {e}")
+                continue
 
-            merge_stats['datasets_count'] += 1
+        logger.info(f"\n📦 步骤3完成: 转换 {json_count} 个 JSON 到 YOLO 格式")
 
         # 生成 dataset.yaml
         path_str = str(final_output_dir.absolute())
@@ -625,14 +658,15 @@ names:
 """
         (final_output_dir / "dataset.yaml").write_text(yaml_content, encoding='utf-8')
 
+        # 统计有内容的标注文件数（排除空文件）
+        train_labels_with_content = sum(1 for f in final_train_lbl_dir.glob('*.txt') if f.stat().st_size > 0)
+        val_labels_with_content = sum(1 for f in final_val_lbl_dir.glob('*.txt') if f.stat().st_size > 0)
+
         logger.info("\n" + "=" * 60)
-        logger.info("📊 合并统计")
+        logger.info("📊 最终统计")
         logger.info("=" * 60)
-        logger.info(f"合并数据集: {merge_stats['datasets_count']}")
-        logger.info(f"训练集图片: {merge_stats['train_images']}")
-        logger.info(f"验证集图片: {merge_stats['val_images']}")
-        logger.info(f"训练集标注: {merge_stats['train_annotations']}")
-        logger.info(f"验证集标注: {merge_stats['val_annotations']}")
+        logger.info(f"训练集: {len(list(final_train_img_dir.glob('*')))} 图片, {len(list(final_train_lbl_dir.glob('*.txt')))} 标注文件 ({train_labels_with_content} 有内容)")
+        logger.info(f"验证集: {len(list(final_val_img_dir.glob('*')))} 图片, {len(list(final_val_lbl_dir.glob('*.txt')))} 标注文件 ({val_labels_with_content} 有内容)")
         logger.info(f"输出: {final_output_dir}")
         logger.info("=" * 60)
 
@@ -644,9 +678,6 @@ names:
                 logger.info("✅ 临时目录已删除")
             except Exception as e:
                 logger.warning(f"⚠️  清理临时目录失败: {e}")
-
-        # 合并统计信息
-        results.update(merge_stats)
 
     # ========== 打印最终统计 ==========
     if not merge_manual_datasets:
@@ -673,7 +704,7 @@ if __name__ == "__main__":
 
     # 模式3: 批量处理 + 合并手动标注数据集
     process_dataset(
-        input_source="annotations/红木.json",
+        input_source="annotations/",
         merge_manual_datasets=True,
         manual_datasets_dir="datasets/manual_booth_annotations",
         final_output_dir="datasets/booth_final_merged",
