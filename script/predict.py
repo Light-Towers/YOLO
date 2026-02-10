@@ -138,8 +138,8 @@ def start_predict(model_path, image_path, dataset_name=None, output_dir=None, mo
 if __name__ == "__main__":
     project_root = get_project_root()
 
-    model_path = str(project_root / 'models' / 'train' / 'booth_obb_v13' / 'weights' / 'best.pt')
-    image_path = str(project_root / 'images' / '2024年展位图.jpg')
+    model_path = str(project_root / 'output' / 'models' / 'train' / 'booth_obb_v13' / 'weights' / 'best.pt')
+    image_path = str(project_root / 'images' / '2024-畜博会.jpg')
     dataset_name = None
     output_dir = None
 

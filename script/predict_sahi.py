@@ -143,8 +143,8 @@ if __name__ == "__main__":
     project_root = get_project_root()
 
     # 直接在代码中定义参数值，而不是使用argparse
-    model_path = str(project_root / 'models' / 'train' / 'booth_obb_v13' / 'weights' / 'best.pt')
-    image_path = str(project_root / 'images' / 'HongMu.png')
+    model_path = str(project_root / 'output' / 'models' / 'train' / 'booth_obb_v13' / 'weights' / 'best.pt')
+    image_path = str(project_root / 'images' / '红木.png')
     dataset_name = None  # 使用None以让函数自动推断
     output_dir = None    # 使用None以使用默认输出目录
 

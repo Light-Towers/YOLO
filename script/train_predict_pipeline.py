@@ -273,10 +273,12 @@ def main():
 
     project_dir = pipeline.project_dir
     prediction_images = [
-        f"{project_dir}/images/2024年展位图.jpg",
-        f"{project_dir}/images/第十一届世界猪业博览会.jpeg",
-        f"{project_dir}/images/长沙国际会展中心.jpg",
-        f"{project_dir}/images/2020畜博会.png",
+        # f"{project_dir}/images/2024年展位图.jpg",
+        # f"{project_dir}/images/第十一届世界猪业博览会.jpeg",
+        # f"{project_dir}/images/长沙国际会展中心.jpg",
+        # f"{project_dir}/images/2020畜博会.png",
+
+        f"{project_dir}/images/",
     ]
 
     # 加载配置并运行
@@ -285,7 +287,7 @@ def main():
         dataset_name=dataset_name,
         exp_name=exp_name,
         prediction_images=prediction_images,
-        epochs=3
+        epochs=300
     )
     pipeline.run()
 
