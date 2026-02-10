@@ -4,6 +4,7 @@
 """
 from pathlib import Path
 from typing import Dict, Any, List, Tuple, Union
+from collections import defaultdict
 import shutil
 import json
 import random
@@ -283,6 +284,7 @@ def process_dataset(
     merge_manual_datasets: bool = False,
     manual_datasets_dir: str = "datasets",
     max_background_ratio: float = 0.3,  # 背景图在训练集中的最大比例
+    min_background_per_source: int = 1,  # 每个原始图片来源至少保留的背景图数量
 ) -> dict:
     """
     通用的数据集处理函数
@@ -305,6 +307,7 @@ def process_dataset(
         min_area_ratio: 最小保留比例
         merge_manual_datasets: 是否合并手动标注数据集（批量模式时）
         max_background_ratio: 背景图在训练集中的最大比例（默认0.3=30%），避免背景图过多
+        min_background_per_source: 每个原始图片来源至少保留的背景图数量（默认1），保证来源多样性
 
     Returns:
         统计信息字典
@@ -569,24 +572,85 @@ def process_dataset(
                 logger.error(f"❌ 转换失败 {json_file.name}: {e}")
                 continue
 
-        # 处理 background 目录（按 max_background_ratio 限制数量）
-        logger.info("📂 处理背景图...")
+        # 处理 background 目录（智能筛选，保证原始图片来源多样性）
+        logger.info("📂 处理背景图（智能筛选）...")
         
         # 计算应该保留的背景图数量
-        # 当前 train_count 是有标注的图片数量（annotated 中分配到 train 的）
-        annotated_train_count = train_count  # 此时 train_count 只包含 annotated 的训练集图片
+        annotated_train_count = train_count
         max_background_count = int(annotated_train_count * max_background_ratio / (1 - max_background_ratio))
         
-        # 收集所有背景图
+        # 收集所有背景图并按原始图片分组
+        # 文件名格式: {original_name}_tile_{tile_id}.json
         background_files = list(mix_background_dir.glob('*.json'))
         
-        # 随机采样，限制背景图数量
-        if len(background_files) > max_background_count:
-            logger.info(f"   ⚠️ 背景图过多: {len(background_files)} 个，限制为 {max_background_count} 个 (比例 {max_background_ratio:.0%})")
-            random.shuffle(background_files)
-            background_files = background_files[:max_background_count]
+        # 按原始图片来源分组
+        source_groups = defaultdict(list)
+        for json_file in background_files:
+            # 解析原始图片名称 (如 hongmu_tile_0001.json -> hongmu)
+            stem = json_file.stem
+            if '_tile_' in stem:
+                source_name = stem.rsplit('_tile_', 1)[0]
+            else:
+                source_name = 'unknown'
+            source_groups[source_name].append(json_file)
+        
+        # 智能筛选策略：
+        # 1. 优先从样本量多的来源组中选取（数据更丰富的来源）
+        # 2. 使用轮询(round-robin)方式从各组选取，保证来源多样性
+        # 3. 确保每个来源至少有 min_background_per_source 个样本
+        
+        selected_backgrounds = []
+        
+        if len(background_files) <= max_background_count:
+            # 背景图数量未超限，全部使用
+            selected_backgrounds = background_files
+            logger.info(f"   ✅ 背景图总数 {len(background_files)} 未超限 ({max_background_count})，全部使用")
         else:
-            logger.info(f"   ✅ 背景图数量: {len(background_files)} 个 (限制: {max_background_count} 个)")
+            # 需要筛选：按来源丰富度排序，优先从多样性的来源选取
+            logger.info(f"   🔍 背景图共 {len(background_files)} 个，来自 {len(source_groups)} 个原始图片")
+            logger.info(f"   ⚠️ 限制为 {max_background_count} 个 (比例 {max_background_ratio:.0%})")
+            logger.info(f"   📌 每个来源最少保留: {min_background_per_source} 个")
+            
+            # 按组大小降序排序（优先从样本多的组选取）
+            sorted_groups = sorted(source_groups.items(), key=lambda x: len(x[1]), reverse=True)
+            
+            # 第一阶段：确保每个来源至少有 min_background_per_source 个样本
+            for source_name, files in sorted_groups:
+                samples_to_take = min(min_background_per_source, len(files))
+                selected_backgrounds.extend(files[:samples_to_take])
+            
+            # 第二阶段：如果还有配额，轮询补充
+            if len(selected_backgrounds) < max_background_count:
+                remaining_quota = max_background_count - len(selected_backgrounds)
+                group_indices = {name: min_background_per_source for name, _ in sorted_groups}
+                group_names = [name for name, files in sorted_groups if len(files) > min_background_per_source]
+                
+                while remaining_quota > 0 and group_names:
+                    for source_name in list(group_names):
+                        if remaining_quota <= 0:
+                            break
+                        
+                        group = source_groups[source_name]
+                        idx = group_indices[source_name]
+                        
+                        if idx < len(group):
+                            selected_backgrounds.append(group[idx])
+                            group_indices[source_name] += 1
+                            remaining_quota -= 1
+                        else:
+                            group_names.remove(source_name)
+            
+            # 输出选取统计
+            logger.info(f"   📊 智能筛选完成，选中 {len(selected_backgrounds)} 个背景图")
+            for source_name, files in sorted_groups[:5]:  # 显示前5个来源
+                # 计算该来源被选中的数量
+                selected_count = sum(1 for f in selected_backgrounds 
+                                   if (f.parent / f.stem).name.startswith(source_name))
+                total_count = len(files)
+                if selected_count > 0:
+                    logger.info(f"      • {source_name}: {selected_count}/{total_count}")
+        
+        background_files = selected_backgrounds
         
         for json_file in background_files:
             try:
@@ -677,4 +741,5 @@ if __name__ == "__main__":
         tile_size=640,
         overlap=200,
         max_background_ratio=0.3,  # 背景图最多占训练集的30%
+        min_background_per_source=2,  # 每个原始图片至少保留2个背景切片
     )
