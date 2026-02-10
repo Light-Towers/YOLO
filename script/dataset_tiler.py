@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Dict, Any, List, Tuple, Union
 import shutil
 import json
+import random
 import cv2
 from shapely.geometry import Polygon, box
 import shapely.affinity as affinity
@@ -188,13 +189,13 @@ class Tiler:
         }
 
     def _process_tile(self, tile_id: int, x: int, y: int, x_end: int, y_end: int, stats: dict) -> dict:
-        """处理单个切片"""
+        """处理单个切片 - 步骤1只生成png+json，不做分类"""
         tile_w, tile_h = x_end - x, y_end - y
         tile_img = self.img[y:y_end, x:x_end]
 
         tile_name = f"{_convert_to_pinyin(self.image_path.stem)}_tile_{tile_id:04d}.png"
 
-        # 保存图像（同级目录）
+        # 保存图像
         img_path = self.output_dir / tile_name
         cv2.imwrite(str(img_path), tile_img)
 
@@ -211,13 +212,7 @@ class Tiler:
             else:
                 stats['skipped'] += 1
 
-        # 保存标注
-        with open(self.output_dir / tile_name.replace(".png", ".txt"), 'w') as f:
-            for ann in annotations:
-                points_str = " ".join([f"{px:.6f} {py:.6f}" for px, py in ann["points"]])
-                f.write(f"0 {points_str}\n")
-
-        # 保存JSON格式标注
+        # 步骤1：保存JSON格式标注（步骤2再根据是否有标注进行分类）
         if self.save_json:
             self._save_json_annotation(tile_name, tile_w, tile_h, annotations)
 
@@ -225,6 +220,7 @@ class Tiler:
 
     def _save_json_annotation(self, tile_name: str, tile_w: int, tile_h: int, annotations: List[dict]):
         """保存JSON格式标注（用于标注工具检查）"""
+
         # 转换为像素坐标
         shapes = []
         for ann in annotations:
@@ -286,6 +282,7 @@ def process_dataset(
     min_area_ratio: float = 0.85,
     merge_manual_datasets: bool = False,
     manual_datasets_dir: str = "datasets",
+    max_background_ratio: float = 0.3,  # 背景图在训练集中的最大比例
 ) -> dict:
     """
     通用的数据集处理函数
@@ -307,6 +304,7 @@ def process_dataset(
         split_ratio: 训练集比例
         min_area_ratio: 最小保留比例
         merge_manual_datasets: 是否合并手动标注数据集（批量模式时）
+        max_background_ratio: 背景图在训练集中的最大比例（默认0.3=30%），避免背景图过多
 
     Returns:
         统计信息字典
@@ -413,39 +411,74 @@ def process_dataset(
             results['failed'] += 1
             continue
 
-    logger.info(f"\n📦 步骤1完成: {len(list(tmp_base_dir.glob('tiling_*')))} 个目录")
+    # 统计切分结果
+    tiling_dirs = list(tmp_base_dir.glob('tiling_*'))
+    total_png = sum(len(list(d.glob('*.png'))) for d in tiling_dirs)
+    logger.info(f"\n📦 步骤1完成: {len(tiling_dirs)} 个目录, {total_png} 个切片")
 
-    # ========== 步骤2: 合并 manual_datasets_dir 中的标注数据 ==========
+    # ========== 步骤2: 合并并分类（annotated/background） ==========
     if merge_manual_datasets:
         logger.info("\n" + "=" * 60)
-        logger.info("📋 步骤2: 合并手动标注数据")
+        logger.info("📋 步骤2: 合并并分类数据")
         logger.info("=" * 60)
 
-        # 合并 manual_datasets_dir 中的标注数据
+        # 创建 mix_tiling 目录用于分类存储
+        mix_dir = tmp_base_dir / "mix_tiling"
+        mix_annotated_dir = mix_dir / "annotated"
+        mix_background_dir = mix_dir / "background"
+        safe_mkdir(mix_annotated_dir)
+        safe_mkdir(mix_background_dir)
+
+        # 1. 处理 tiling_* 目录中的切分数据（根据JSON内容分类）
+        logger.info("📂 分类切分数据...")
+        for tiling_dir in tiling_dirs:
+            for json_file in tiling_dir.glob('*.json'):
+                try:
+                    data = read_json(json_file)
+                    has_annotation = len(data.get('shapes', [])) > 0
+                    json_stem = json_file.stem
+                    
+                    # 查找匹配图片
+                    img_file = None
+                    for ext in ['.png', '.jpg', '.jpeg']:
+                        candidate = json_file.parent / f"{json_stem}{ext}"
+                        if candidate.exists():
+                            img_file = candidate
+                            break
+                    
+                    if not img_file:
+                        logger.warning(f"⚠️  跳过 {json_stem}: 找不到匹配图片")
+                        continue
+                    
+                    # 根据是否有标注选择目标目录
+                    target_dir = mix_annotated_dir if has_annotation else mix_background_dir
+                    shutil.copy2(json_file, target_dir)
+                    shutil.copy2(img_file, target_dir)
+                    
+                except Exception as e:
+                    logger.error(f"❌ 分类失败 {json_file.name}: {e}")
+                    continue
+
+        # 2. 合并 manual_datasets_dir 中的手动标注数据（全部视为有标注）
         if manual_datasets_dir:
             manual_dir = ensure_absolute(manual_datasets_dir, project_root)
             if manual_dir.is_dir():
                 logger.info(f"📂 合并手动标注数据: {manual_dir}")
-
-                # 创建 manual 目录存放手动标注数据
-                manual_output_dir = tmp_base_dir / "manual"
-                safe_mkdir(manual_output_dir)
-
-                # manual_datasets_dir 是 JSON+图片格式，直接复制到 manual 目录
                 for json_file in manual_dir.glob('*.json'):
-                    shutil.copy2(json_file, manual_output_dir)
-                    # 查找匹配图片
+                    shutil.copy2(json_file, mix_annotated_dir)
                     json_stem = json_file.stem
                     for ext in ['.png', '.jpg', '.jpeg']:
                         img_file = manual_dir / f"{json_stem}{ext}"
                         if img_file.exists():
-                            shutil.copy2(img_file, manual_output_dir)
+                            shutil.copy2(img_file, mix_annotated_dir)
                             break
 
-        # 统计所有子目录中的 JSON 和图片
-        total_json = sum(1 for _ in tmp_base_dir.rglob('*.json'))
-        total_img = sum(1 for _ in tmp_base_dir.rglob('*.png')) + sum(1 for _ in tmp_base_dir.rglob('*.jpg'))
-        logger.info(f"\n📦 步骤2完成: {total_json} 个 JSON, {total_img} 张图片")
+        # 统计分类结果
+        annotated_count = len(list(mix_annotated_dir.glob('*.json')))
+        background_count = len(list(mix_background_dir.glob('*.json')))
+        logger.info(f"\n📦 步骤2完成:")
+        logger.info(f"   ✅ 有标注(annotated): {annotated_count} 个")
+        logger.info(f"   ⚪ 背景图(background): {background_count} 个")
 
         # ========== 步骤3: 将 tmp 目录转换为 YOLO 格式数据集 ==========
         logger.info("\n" + "=" * 60)
@@ -458,14 +491,21 @@ def process_dataset(
         final_val_img_dir = final_output_dir / "images" / "val"
         final_val_lbl_dir = final_output_dir / "labels" / "val"
 
+        # 清理已存在的输出目录（避免重复执行时图片累积）
+        if final_output_dir.exists():
+            logger.info(f"🧹 清理已存在的输出目录: {final_output_dir}")
+            shutil.rmtree(final_output_dir)
+
         for dir_path in [final_train_img_dir, final_train_lbl_dir, final_val_img_dir, final_val_lbl_dir]:
             safe_mkdir(dir_path)
 
-        # 处理 tmp 目录中的所有 JSON（递归搜索子目录）
+        # 处理 mix_tiling 目录中的所有 JSON（从分类后的目录读取）
         json_count = 0
         train_count = 0
         val_count = 0
-        for json_file in tmp_base_dir.rglob('*.json'):
+        
+        # 先处理 annotated 目录（有标注的按 split_ratio 分配）
+        for json_file in mix_annotated_dir.glob('*.json'):
             try:
                 json_stem = json_file.stem
                 json_dir = json_file.parent
@@ -508,15 +548,8 @@ def process_dataset(
                 # 准备标注内容
                 label_content = '\n'.join(yolo_annotations) + '\n' if yolo_annotations else ''
 
-                # 分配策略：背景图（无标注）全部放训练集，有标注的按比例分配
-                import random
-                has_annotation = len(yolo_annotations) > 0
-                if not has_annotation:
-                    # 背景图强制放训练集
-                    is_train = True
-                else:
-                    # 有标注的按 split_ratio 分配
-                    is_train = random.random() < split_ratio
+                # annotated 目录：有标注的按 split_ratio 分配
+                is_train = random.random() < split_ratio
 
                 try:
                     if is_train:
@@ -534,6 +567,50 @@ def process_dataset(
 
             except Exception as e:
                 logger.error(f"❌ 转换失败 {json_file.name}: {e}")
+                continue
+
+        # 处理 background 目录（按 max_background_ratio 限制数量）
+        logger.info("📂 处理背景图...")
+        
+        # 计算应该保留的背景图数量
+        # 当前 train_count 是有标注的图片数量（annotated 中分配到 train 的）
+        annotated_train_count = train_count  # 此时 train_count 只包含 annotated 的训练集图片
+        max_background_count = int(annotated_train_count * max_background_ratio / (1 - max_background_ratio))
+        
+        # 收集所有背景图
+        background_files = list(mix_background_dir.glob('*.json'))
+        
+        # 随机采样，限制背景图数量
+        if len(background_files) > max_background_count:
+            logger.info(f"   ⚠️ 背景图过多: {len(background_files)} 个，限制为 {max_background_count} 个 (比例 {max_background_ratio:.0%})")
+            random.shuffle(background_files)
+            background_files = background_files[:max_background_count]
+        else:
+            logger.info(f"   ✅ 背景图数量: {len(background_files)} 个 (限制: {max_background_count} 个)")
+        
+        for json_file in background_files:
+            try:
+                json_stem = json_file.stem
+                # 查找匹配图片
+                image_file = None
+                for ext in ['.png', '.jpg', '.jpeg']:
+                    candidate = mix_background_dir / f"{json_stem}{ext}"
+                    if candidate.exists():
+                        image_file = candidate
+                        break
+
+                if not image_file:
+                    logger.warning(f"⚠️  跳过 {json_stem}: 找不到匹配图片")
+                    continue
+
+                # 背景图：空标注，强制放训练集
+                shutil.copy2(image_file, final_train_img_dir / image_file.name)
+                (final_train_lbl_dir / f"{json_stem}.txt").write_text('', encoding='utf-8')
+                train_count += 1
+                json_count += 1
+
+            except Exception as e:
+                logger.error(f"❌ 处理背景图失败 {json_file.name}: {e}")
                 continue
 
         logger.info(f"\n📦 步骤3完成: 转换 {json_count} 个 JSON 到 YOLO 格式")
@@ -584,20 +661,20 @@ names:
 
 
 if __name__ == "__main__":
-    # 模式1: 处理单个文件
-    process_dataset("annotations/红木.json")
+    # # 模式1: 处理单个文件
+    # process_dataset("annotations/红木.json")
 
     # 模式2: 批量处理文件夹
     # process_dataset("annotations/红木.json,annotations/11届猪业.json")
 
     # 模式3: 批量处理 + 合并手动标注数据集
-    # process_dataset(
-    #     input_source="annotations/红木.json",
-    #     merge_manual_datasets=True,
-    #     manual_datasets_dir="datasets/manual_booth_annotations",
-    #     final_output_dir="datasets/booth_final_merged",
-    #     clean_temp=True,
-    #     tile_size=640,
-    #     overlap=200,
-    # )
-
+    process_dataset(
+        input_source="annotations/",
+        merge_manual_datasets=True,
+        manual_datasets_dir="datasets/manual_booth_annotations",
+        final_output_dir="datasets/booth_final_merged",
+        clean_temp=True,
+        tile_size=640,
+        overlap=200,
+        max_background_ratio=0.3,  # 背景图最多占训练集的30%
+    )
