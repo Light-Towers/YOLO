@@ -17,6 +17,8 @@ from src.utils import (
     safe_mkdir,
     read_json,
     write_json,
+    get_project_root,
+    ensure_absolute,
 )
 from src.utils.image_tile_utils import TileCalculator
 from src.core import DATASET_CONSTANTS
@@ -309,9 +311,12 @@ def process_dataset(
     Returns:
         统计信息字典
     """
-    input_path = Path(input_source)
-    image_dir = Path(image_dir)
-    temp_dir = Path(temp_dir) if temp_dir else Path("datasets/temp_tiler_output")
+    # 获取项目根目录，用于将相对路径转为绝对路径
+    project_root = get_project_root()
+
+    input_path = ensure_absolute(input_source, project_root)
+    image_dir = ensure_absolute(image_dir, project_root)
+    temp_dir = ensure_absolute(temp_dir, project_root) if temp_dir else project_root / "datasets" / "temp_tiler_output"
 
     # 收集需要处理的JSON文件
     json_files = []
@@ -351,7 +356,7 @@ def process_dataset(
 
     # ========== 步骤1: 切分 input_source 中的 JSON 文件（生成切片图片 + JSON） ==========
     # 切分后的数据放到 datasets/tmp/tiling_xx 下
-    tmp_base_dir = Path("datasets/tmp")
+    tmp_base_dir = project_root / "datasets" / "tmp"
     safe_mkdir(tmp_base_dir)
 
     results = {'processed': 0, 'failed': 0, 'total_tiles': 0, 'kept': 0}
@@ -418,7 +423,7 @@ def process_dataset(
 
         # 合并 manual_datasets_dir 中的标注数据
         if manual_datasets_dir:
-            manual_dir = Path(manual_datasets_dir)
+            manual_dir = ensure_absolute(manual_datasets_dir, project_root)
             if manual_dir.is_dir():
                 logger.info(f"📂 合并手动标注数据: {manual_dir}")
 
@@ -447,7 +452,7 @@ def process_dataset(
         logger.info("📋 步骤3: 转换为 YOLO 格式数据集")
         logger.info("=" * 60)
 
-        final_output_dir = Path(final_output_dir) if final_output_dir else Path("datasets/booth_final_merged")
+        final_output_dir = ensure_absolute(final_output_dir, project_root) if final_output_dir else project_root / "datasets" / "booth_final_merged"
         final_train_img_dir = final_output_dir / "images" / "train"
         final_train_lbl_dir = final_output_dir / "labels" / "train"
         final_val_img_dir = final_output_dir / "images" / "val"
@@ -580,19 +585,19 @@ names:
 
 if __name__ == "__main__":
     # 模式1: 处理单个文件
-    # process_dataset("annotations/红木.json")
+    process_dataset("annotations/红木.json")
 
     # 模式2: 批量处理文件夹
     # process_dataset("annotations/红木.json,annotations/11届猪业.json")
 
     # 模式3: 批量处理 + 合并手动标注数据集
-    process_dataset(
-        input_source="annotations",
-        merge_manual_datasets=True,
-        manual_datasets_dir="datasets/manual_booth_annotations",
-        final_output_dir="datasets/booth_final_merged",
-        clean_temp=True,
-        tile_size=640,
-        overlap=200,
-    )
+    # process_dataset(
+    #     input_source="annotations/红木.json",
+    #     merge_manual_datasets=True,
+    #     manual_datasets_dir="datasets/manual_booth_annotations",
+    #     final_output_dir="datasets/booth_final_merged",
+    #     clean_temp=True,
+    #     tile_size=640,
+    #     overlap=200,
+    # )
 
