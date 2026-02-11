@@ -26,6 +26,11 @@ class TileCalculator:
             切片列表，每个元素为 (tile_id, x, y, x_end, y_end)
         """
         # 处理重叠参数
+        # 当 overlap < 1 时，视为 overlap_ratio
+        if overlap is not None and overlap < 1:
+            overlap_ratio = overlap
+            overlap = None
+        
         if overlap_ratio is not None:
             overlap = int(tile_size * overlap_ratio)
         elif overlap is None:
