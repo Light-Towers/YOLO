@@ -16,7 +16,7 @@ dependencies = [
     "ultralytics==8.4.13",
     "torch==2.7.1",
     "torchvision==0.22.1",
-    "numpy==2.3.5",
+    "numpy<2.0.0",
     "sahi==0.11.36",
     "opencv-python==4.10.0.84",
     "Pillow==11.3.0",
