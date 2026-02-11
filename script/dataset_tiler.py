@@ -740,8 +740,8 @@ if __name__ == "__main__":
         manual_datasets_dir="datasets/manual_booth_annotations",
         final_output_dir="datasets/booth_final_merged",
         clean_temp=True,
-        tile_size=640,
-        overlap=200,
+        tile_size=1024,
+        overlap=500,
         max_background_ratio=0.3,  # 背景图最多占训练集的30%
         min_background_per_source=2,  # 每个原始图片至少保留2个背景切片
     )
