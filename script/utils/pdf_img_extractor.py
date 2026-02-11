@@ -1,6 +1,7 @@
+from pathlib import Path
+
 import fitz  # PyMuPDF
 from pdf2image import convert_from_path
-from pathlib import Path
 
 # 导入工程化工具
 from src.utils import get_logger, safe_mkdir

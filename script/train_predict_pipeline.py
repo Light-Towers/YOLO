@@ -5,28 +5,30 @@
 - train: 是否执行训练（有指定模型就用指定模型，没有就用默认预训练模型）
 - predict: 是否执行预测（有指定模型就用指定模型，没有就用刚训练好的/注册表中的）
 """
-from ultralytics import YOLO
-import os
-from pathlib import Path
-import re
-import torch
 import json
+import os
+import re
 from datetime import datetime
+from pathlib import Path
 
-# 导入工程化工具
-from src.utils import (
-    get_project_root,
-    get_logger,
-    get_image_files,
-    safe_mkdir,
-)
-from src.core import TRAINING_CONSTANTS
-
-# 导入train模块中的函数
-from train import train_model, get_model_path, update_dataset_path
+import torch
 
 # 导入predict_sahi模块
 from predict_sahi import start_predict
+
+# 导入train模块中的函数
+from train import get_model_path, train_model, update_dataset_path
+from ultralytics import YOLO
+
+from src.core import TRAINING_CONSTANTS
+
+# 导入工程化工具
+from src.utils import (
+    get_image_files,
+    get_logger,
+    get_project_root,
+    safe_mkdir,
+)
 
 logger = get_logger('train_predict_pipeline')
 

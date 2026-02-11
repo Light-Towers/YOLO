@@ -1,16 +1,17 @@
 """
 测试路径工具模块
 """
-import pytest
-from pathlib import Path
 import sys
+from pathlib import Path
+
+import pytest
 
 from src.utils.path_utils import (
-    get_project_root,
-    ensure_path,
     ensure_absolute,
-    safe_mkdir,
+    ensure_path,
     get_image_files,
+    get_project_root,
+    safe_mkdir,
 )
 
 

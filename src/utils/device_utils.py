@@ -2,7 +2,7 @@
 设备工具模块
 统一处理计算设备（CPU/GPU）相关逻辑
 """
-from typing import Union, Optional
+from typing import Optional, Union
 
 
 def _import_torch():

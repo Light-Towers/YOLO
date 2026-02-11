@@ -1,18 +1,20 @@
-from ultralytics import YOLO
-import cv2
-import numpy as np
 import os
 from pathlib import Path
+
+import cv2
+import numpy as np
+from ultralytics import YOLO
+
+from src.core import INFERENCE_CONSTANTS
 
 # 导入工程化工具
 from src.utils import (
     get_device,
-    get_project_root,
     get_logger,
+    get_project_root,
     safe_mkdir,
     write_json,
 )
-from src.core import INFERENCE_CONSTANTS
 
 # 获取项目logger
 logger = get_logger('predict_obb')

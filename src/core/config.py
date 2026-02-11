@@ -2,10 +2,12 @@
 配置管理模块
 支持从YAML文件加载配置
 """
-import yaml
-from pathlib import Path
-from typing import Any, Optional, Dict
+
 from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Optional
+
+import yaml
 
 from src.core.exceptions import ConfigurationError
 
@@ -13,6 +15,7 @@ from src.core.exceptions import ConfigurationError
 @dataclass
 class ProjectConfig:
     """项目配置"""
+
     name: str = "yolo-booth-detection"
     version: str = "0.1.0"
 
@@ -20,6 +23,7 @@ class ProjectConfig:
 @dataclass
 class DatasetConfig:
     """数据集配置"""
+
     name: str = "booth_seg"
     root_dir: str = "datasets"
     train_ratio: float = 0.8
@@ -29,6 +33,7 @@ class DatasetConfig:
 @dataclass
 class TrainingConfig:
     """训练配置"""
+
     models: list[str] = field(default_factory=list)
     epochs: int = 300
     patience: int = 50
@@ -62,6 +67,7 @@ class TrainingConfig:
 @dataclass
 class InferenceConfig:
     """推理配置"""
+
     confidence_threshold: float = 0.7
     iou_threshold: float = 0.2
     hide_labels: bool = True
@@ -82,6 +88,7 @@ class InferenceConfig:
 @dataclass
 class PathsConfig:
     """路径配置"""
+
     models_dir: str = "models"
     datasets_dir: str = "datasets"
     outputs_dir: str = "output"
@@ -92,6 +99,7 @@ class PathsConfig:
 @dataclass
 class LoggingConfig:
     """日志配置"""
+
     level: str = "INFO"
     format: str = "colored"
     log_to_file: bool = True
@@ -101,6 +109,7 @@ class LoggingConfig:
 @dataclass
 class Config:
     """完整配置"""
+
     project: ProjectConfig = field(default_factory=ProjectConfig)
     dataset: DatasetConfig = field(default_factory=DatasetConfig)
     training: TrainingConfig = field(default_factory=TrainingConfig)
@@ -109,23 +118,23 @@ class Config:
     logging: LoggingConfig = field(default_factory=LoggingConfig)
 
     @classmethod
-    def from_yaml(cls, yaml_path: Path | str) -> 'Config':
+    def from_yaml(cls, yaml_path: Path | str) -> "Config":
         """从YAML文件加载配置"""
         yaml_path = Path(yaml_path)
         if not yaml_path.exists():
             raise ConfigurationError(f"配置文件不存在: {yaml_path}")
 
         try:
-            with open(yaml_path, 'r', encoding='utf-8') as f:
+            with open(yaml_path, "r", encoding="utf-8") as f:
                 data = yaml.safe_load(f)
 
             return cls(
-                project=ProjectConfig(**data.get('project', {})),
-                dataset=DatasetConfig(**data.get('dataset', {})),
-                training=TrainingConfig(**data.get('training', {})),
-                inference=InferenceConfig(**data.get('inference', {})),
-                paths=PathsConfig(**data.get('paths', {})),
-                logging=LoggingConfig(**data.get('logging', {})),
+                project=ProjectConfig(**data.get("project", {})),
+                dataset=DatasetConfig(**data.get("dataset", {})),
+                training=TrainingConfig(**data.get("training", {})),
+                inference=InferenceConfig(**data.get("inference", {})),
+                paths=PathsConfig(**data.get("paths", {})),
+                logging=LoggingConfig(**data.get("logging", {})),
             )
         except Exception as e:
             raise ConfigurationError(f"加载配置文件失败: {e}") from e
@@ -136,15 +145,15 @@ class Config:
         yaml_path.parent.mkdir(parents=True, exist_ok=True)
 
         data = {
-            'project': self.project.__dict__,
-            'dataset': self.dataset.__dict__,
-            'training': self.training.__dict__,
-            'inference': self.inference.__dict__,
-            'paths': self.paths.__dict__,
-            'logging': self.logging.__dict__,
+            "project": self.project.__dict__,
+            "dataset": self.dataset.__dict__,
+            "training": self.training.__dict__,
+            "inference": self.inference.__dict__,
+            "paths": self.paths.__dict__,
+            "logging": self.logging.__dict__,
         }
 
-        with open(yaml_path, 'w', encoding='utf-8') as f:
+        with open(yaml_path, "w", encoding="utf-8") as f:
             yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
 
 

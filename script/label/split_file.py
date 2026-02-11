@@ -1,16 +1,17 @@
 import os
-import shutil
 import random
+import shutil
 from pathlib import Path
+
+from src.core import DATASET_CONSTANTS
 
 # 导入工程化工具
 from src.utils import (
-    get_project_root,
-    get_logger,
-    safe_mkdir,
     get_image_files,
+    get_logger,
+    get_project_root,
+    safe_mkdir,
 )
-from src.core import DATASET_CONSTANTS
 
 # 获取项目logger
 logger = get_logger('label.split_file')

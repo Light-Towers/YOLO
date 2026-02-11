@@ -1,11 +1,17 @@
 """
 测试日志工具模块
 """
-import pytest
 import logging
 from pathlib import Path
 
-from src.utils.logging_utils import get_logger, setup_logging, ColoredFormatter, JsonFormatter
+import pytest
+
+from src.utils.logging_utils import (
+    ColoredFormatter,
+    JsonFormatter,
+    get_logger,
+    setup_logging,
+)
 
 
 class TestLoggingUtils:

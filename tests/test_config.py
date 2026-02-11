@@ -1,10 +1,11 @@
 """
 测试配置加载模块
 """
-import pytest
 from pathlib import Path
 
-from src.core.config import Config, ProjectConfig, TrainingConfig, DatasetConfig
+import pytest
+
+from src.core.config import Config, DatasetConfig, ProjectConfig, TrainingConfig
 from src.core.exceptions import ConfigurationError
 
 

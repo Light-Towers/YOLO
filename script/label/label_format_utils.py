@@ -1,9 +1,10 @@
-import cv2
-import numpy as np
 from pathlib import Path
 
+import cv2
+import numpy as np
+
 # 导入工程化工具
-from src.utils import get_logger, safe_mkdir, read_json, write_json
+from src.utils import get_logger, read_json, safe_mkdir, write_json
 
 logger = get_logger('label.label_format_utils')
 

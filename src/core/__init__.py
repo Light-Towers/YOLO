@@ -3,8 +3,8 @@
 包含配置管理、异常定义、常量定义等
 """
 from src.core.config import Config, load_config
-from src.core.exceptions import *
 from src.core.constants import *
+from src.core.exceptions import *
 
 __all__ = [
     'Config',

@@ -1,20 +1,22 @@
-from ultralytics import YOLO
 import os
-from pathlib import Path
 import re
-import torch
 import sys
+from pathlib import Path
+
+import torch
+from ultralytics import YOLO
+
+from src.core import IMAGE_CONSTANTS, TRAINING_CONSTANTS
 
 # 导入工程化工具
 from src.utils import (
     get_device,
-    get_project_root,
     get_logger,
-    safe_mkdir,
+    get_project_root,
     read_yaml,
+    safe_mkdir,
     write_yaml,
 )
-from src.core import TRAINING_CONSTANTS, IMAGE_CONSTANTS
 
 # 获取项目logger
 logger = get_logger('train')

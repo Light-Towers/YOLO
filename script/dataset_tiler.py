@@ -2,28 +2,30 @@
 切分器 - 只保留完整的展位标注，避免形状被切割
 处理原始图片和json文件, 生成数据集
 """
-from pathlib import Path
-from typing import Dict, Any, List, Tuple, Union
-from collections import defaultdict
-import shutil
 import json
 import random
+import shutil
+from collections import defaultdict
+from pathlib import Path
+from typing import Any, Dict, List, Tuple, Union
+
 import cv2
-from shapely.geometry import Polygon, box
 import shapely.affinity as affinity
 from pypinyin import lazy_pinyin
+from shapely.geometry import Polygon, box
+
+from src.core import DATASET_CONSTANTS
 
 # 导入工程化工具
 from src.utils import (
-    get_logger,
-    safe_mkdir,
-    read_json,
-    write_json,
-    get_project_root,
     ensure_absolute,
+    get_logger,
+    get_project_root,
+    read_json,
+    safe_mkdir,
+    write_json,
 )
 from src.utils.image_tile_utils import TileCalculator
-from src.core import DATASET_CONSTANTS
 
 logger = get_logger('dataset_tiler')
 

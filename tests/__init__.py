@@ -2,12 +2,13 @@
 pytest 配置文件
 定义测试共享的 fixture
 """
-import pytest
-import cv2
 import json
-import numpy as np
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
+
+import cv2
+import numpy as np
+import pytest
 
 
 @pytest.fixture

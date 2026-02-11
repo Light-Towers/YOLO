@@ -1,18 +1,20 @@
-from sahi import AutoDetectionModel
-from sahi.predict import get_sliced_prediction
 import os
 from pathlib import Path
+
 import torch
+from sahi import AutoDetectionModel
+from sahi.predict import get_sliced_prediction
+
+from src.core import INFERENCE_CONSTANTS
 
 # 导入工程化工具
 from src.utils import (
     get_device,
-    get_project_root,
     get_logger,
+    get_project_root,
     safe_mkdir,
     write_json,
 )
-from src.core import INFERENCE_CONSTANTS
 
 # 获取项目logger
 logger = get_logger('predict_sahi')
