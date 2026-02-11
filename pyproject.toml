@@ -1,43 +1,89 @@
+# =============================================================================
+# YOLO 展位检测项目配置
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# 构建系统配置
+# -----------------------------------------------------------------------------
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
+# 自动发现 src 目录下的包
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["src*"]
 
+# -----------------------------------------------------------------------------
+# 项目元数据
+# -----------------------------------------------------------------------------
 [project]
 name = "yolo-booth-detection"
 version = "0.1.0"
 description = "YOLO-based booth detection project supporting OBB detection and instance segmentation"
 readme = "README.md"
 requires-python = ">=3.9"
+
+# -----------------------------------------------------------------------------
+# 核心依赖
+# -----------------------------------------------------------------------------
 dependencies = [
-    "ultralytics==8.4.13",
-    "torch==2.7.1",
-    "torchvision==0.22.1",
-    "numpy<2.0.0",
-    "sahi==0.11.36",
-    "opencv-python==4.10.0.84",
-    "Pillow==11.3.0",
-    "shapely>=2.0.0",
-    "pypinyin>=0.49.0",
-    "PyMuPDF>=1.23.0",
-    "pdf2image>=1.16.0",
-    "pyyaml>=6.0",
-    "tqdm>=4.66.0",
+    # YOLO 框架和深度学习
+    "ultralytics==8.4.13",         # YOLOv8 目标检测框架
+    "torch==2.7.1",                # PyTorch 深度学习库
+    "torchvision==0.22.1",         # PyTorch 视觉库
+    "numpy<2.0.0",                 # 数值计算（限制2.0以下避免兼容问题）
+
+    # 切片推理
+    "sahi==0.11.36",               # Slicing Aided Hyper Inference
+
+    # 图像处理
+    "opencv-python==4.10.0.84",    # OpenCV 计算机视觉库
+    "Pillow==11.3.0",              # PIL 图像处理
+
+    # 几何处理
+    "shapely>=2.0.0",              # 几何图形操作
+
+    # 中文处理
+    "pypinyin>=0.49.0",            # 中文拼音转换
+
+    # PDF处理
+    "PyMuPDF>=1.23.0",             # PDF 文档处理
+    "pdf2image>=1.16.0",           # PDF 转图片
+
+    # 配置文件
+    "pyyaml>=6.0",                 # YAML 解析
+
+    # 工具
+    "tqdm>=4.66.0",                # 进度条显示
 ]
 
+# -----------------------------------------------------------------------------
+# 可选依赖（开发用）
+# 安装命令: pip install -e ".[dev]"
+# -----------------------------------------------------------------------------
 [project.optional-dependencies]
 dev = [
-    "mypy>=1.5.0",
-    "black>=23.0.0",
-    "isort>=5.12.0",
-    "flake8>=6.0.0",
-    "pytest>=7.4.0",
-    "pytest-cov>=4.1.0",
+    # 类型检查
+    "mypy>=1.5.0",                 # Python 静态类型检查
+
+    # 代码格式化
+    "black>=23.0.0",               # 代码自动格式化
+    "isort>=5.12.0",               # import 排序
+
+    # 代码检查
+    "flake8>=6.0.0",               # 代码风格检查
+
+    # 测试框架
+    "pytest>=7.4.0",               # 单元测试
+    "pytest-cov>=4.1.0",           # 测试覆盖率
 ]
 
+# -----------------------------------------------------------------------------
+# 工具配置
+# -----------------------------------------------------------------------------
+
+# Black 代码格式化器配置
 [tool.black]
 line-length = 88
 target-version = ['py39']
@@ -52,6 +98,7 @@ exclude = '''
 )/
 '''
 
+# isort import 排序配置（与 Black 兼容）
 [tool.isort]
 profile = "black"
 line_length = 88
@@ -61,6 +108,7 @@ force_grid_wrap = 0
 use_parentheses = true
 ensure_newline_before_comments = true
 
+# MyPy 类型检查配置
 [tool.mypy]
 python_version = "3.9"
 warn_return_any = true
@@ -68,6 +116,7 @@ warn_unused_configs = true
 disallow_untyped_defs = false
 ignore_missing_imports = true
 
+# Pytest 测试配置
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]

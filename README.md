@@ -16,10 +16,7 @@
 ### 安装依赖
 
 ```bash
-# 安装核心依赖
-pip install -r requirements.txt
-
-# 或使用 pyproject.toml
+# 使用 pyproject.toml
 pip install -e .
 ```
 
