@@ -95,6 +95,7 @@ class PipelineConfig:
         
         # 模型配置（None表示使用默认逻辑）
         self.predict_models = None    # 预测用的模型路径列表
+        self.freeze = None             # 冻结层配置（如 None, 10, [0,1,2,3]）
 
 
 # ========== 数据集管理 ==========
@@ -186,7 +187,8 @@ class Trainer:
             self.config.project_dir,
             self.config.exp_name,
             self.config.dataset_name,
-            epochs=self.config.epochs
+            epochs=self.config.epochs,
+            freeze=self.config.freeze
         )
         
         return best_path
@@ -280,6 +282,10 @@ class Pipeline:
             prediction_images: 预测图片路径（支持文件/文件夹混合）
             predict_models: 预测用的模型路径列表（None则使用刚训练/注册表的）
             model_names: 训练模型列表（如 ["yolov8s-obb.pt"] 或 ["/path/to/best.pt"]）
+            freeze: 冻结层配置
+                - None: 不冻结任何层（默认）
+                - 10: 冻结前10层
+                - [0,1,2,3]: 冻结指定层索引
         """
         # 更新配置
         for key, value in kwargs.items():
@@ -378,7 +384,8 @@ def main():
     #     prediction_images=[f"{project_dir}/images/"],
     #     model_names=[  # 指定已训练好的模型路径
     #         f"{project_dir}/output/models/yolov8s-obb/exp_v1/weights/best.pt"
-    #     ]
+    #     ],
+    #     freeze=10  # 冻结前10层（用于增量训练，只训练检测头）
     # )
     
     # ===== 场景5: 用任意模型预测（不训练）=====

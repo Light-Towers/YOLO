@@ -21,9 +21,21 @@ from src.utils import (
 # 获取项目logger
 logger = get_logger('train')
 
-def train_model(model_path, dataset_yaml_path, project_dir, exp_name, dataset_name, epochs=300):
+def train_model(model_path, dataset_yaml_path, project_dir, exp_name, dataset_name, epochs=300, freeze=None):
     """
     执行模型训练的核心函数
+
+    Args:
+        model_path: 模型文件路径
+        dataset_yaml_path: 数据集配置文件路径
+        project_dir: 项目根目录
+        exp_name: 实验名称
+        dataset_name: 数据集名称
+        epochs: 训练轮数
+        freeze: 冻结层配置（用于增量训练）
+            - None: 不冻结任何层
+            - 10: 冻结前10层
+            - [0,1,2,3]: 冻结指定层索引的列表
     """
     # 使用工具函数获取设备
     device = get_device()
@@ -37,6 +49,13 @@ def train_model(model_path, dataset_yaml_path, project_dir, exp_name, dataset_na
 
     # 加载模型
     model = YOLO(str(model_path))
+
+    # 冻结层（用于增量训练）
+    if freeze is not None:
+        if isinstance(freeze, int):
+            logger.info(f"冻结前 {freeze} 层")
+        elif isinstance(freeze, list):
+            logger.info(f"冻结层: {freeze}")
 
     # 开始训练
     results = model.train(
@@ -68,6 +87,9 @@ def train_model(model_path, dataset_yaml_path, project_dir, exp_name, dataset_na
         mosaic=TRAINING_CONSTANTS.DEFAULT_MOSAIC,
         mixup=TRAINING_CONSTANTS.DEFAULT_MIXUP,
         copy_paste=TRAINING_CONSTANTS.DEFAULT_COPY_PASTE,
+
+        # ========== 增量训练参数 ==========
+        freeze=freeze,
 
         # ========== OBB特定参数 ==========
         overlap_mask=False,
