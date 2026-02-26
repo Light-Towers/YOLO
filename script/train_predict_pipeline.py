@@ -348,7 +348,6 @@ def main():
         prediction_images=[f"{project_dir}/images/11届猪业.jpeg"],
         model_names=["yolov8s-obb.pt"]  # 使用默认预训练模型
     )
-    # pipeline.run()
     
     # ===== 场景2: 只训练（不预测）=====
     # pipeline.setup(
@@ -359,7 +358,6 @@ def main():
     #     epochs=100,
     #     model_names=["yolov8s-obb.pt"]
     # )
-    # pipeline.run()
     
     # ===== 场景3: 只预测（使用上次训练的模型）=====
     # pipeline.setup(
@@ -369,7 +367,6 @@ def main():
     #     prediction_images=[f"{project_dir}/images/"]
     #     # 不指定 predict_models，自动使用注册表中的模型
     # )
-    # pipeline.run()
     
     # ===== 场景4: 基于已训练模型继续训练（增量训练）=====
     # pipeline.setup(
@@ -383,7 +380,6 @@ def main():
     #         f"{project_dir}/output/models/yolov8s-obb/exp_v1/weights/best.pt"
     #     ]
     # )
-    # pipeline.run()
     
     # ===== 场景5: 用任意模型预测（不训练）=====
     # pipeline.setup(
@@ -395,7 +391,6 @@ def main():
     #         f"{project_dir}/my_custom_model.pt"
     #     ]
     # )
-    # pipeline.run()
     
     pipeline.run()
 
