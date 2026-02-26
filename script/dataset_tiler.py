@@ -308,6 +308,7 @@ def process_dataset(
         split_ratio: 训练集比例
         min_area_ratio: 最小保留比例
         merge_manual_datasets: 是否合并手动标注数据集（批量模式时）
+        manual_datasets_dir: 手动标注数据目录，支持单个目录或多个目录（逗号分隔，默认: datasets）
         max_background_ratio: 背景图在训练集中的最大比例（默认0.3=30%），避免背景图过多
         min_background_per_source: 每个原始图片来源至少保留的背景图数量（默认1），保证来源多样性
 
@@ -466,17 +467,24 @@ def process_dataset(
 
         # 2. 合并 manual_datasets_dir 中的手动标注数据（全部视为有标注）
         if manual_datasets_dir:
-            manual_dir = ensure_absolute(manual_datasets_dir, project_root)
-            if manual_dir.is_dir():
-                logger.info(f"📂 合并手动标注数据: {manual_dir}")
-                for json_file in manual_dir.glob('*.json'):
-                    shutil.copy2(json_file, mix_annotated_dir)
-                    json_stem = json_file.stem
-                    for ext in ['.png', '.jpg', '.jpeg']:
-                        img_file = manual_dir / f"{json_stem}{ext}"
-                        if img_file.exists():
-                            shutil.copy2(img_file, mix_annotated_dir)
-                            break
+            # 支持多个目录（逗号分隔）
+            manual_dirs = []
+            for dir_str in manual_datasets_dir.split(','):
+                dir_path = ensure_absolute(dir_str.strip(), project_root)
+                if dir_path.is_dir():
+                    manual_dirs.append(dir_path)
+
+            if manual_dirs:
+                for manual_dir in manual_dirs:
+                    logger.info(f"📂 合并手动标注数据: {manual_dir}")
+                    for json_file in manual_dir.glob('*.json'):
+                        shutil.copy2(json_file, mix_annotated_dir)
+                        json_stem = json_file.stem
+                        for ext in ['.png', '.jpg', '.jpeg']:
+                            img_file = manual_dir / f"{json_stem}{ext}"
+                            if img_file.exists():
+                                shutil.copy2(img_file, mix_annotated_dir)
+                                break
 
         # 统计分类结果
         annotated_count = len(list(mix_annotated_dir.glob('*.json')))
@@ -737,7 +745,7 @@ if __name__ == "__main__":
     process_dataset(
         input_source="annotations/",
         merge_manual_datasets=True,
-        manual_datasets_dir="datasets/manual_booth_annotations",
+        manual_datasets_dir="datasets/manual_booth_annotations",  # 支持多个目录（逗号分隔）
         final_output_dir="datasets/booth_final_merged",
         clean_temp=True,
         tile_size=1024,
