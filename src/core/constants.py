@@ -31,7 +31,7 @@ class TrainingConstants:
     WARMUP_EPOCHS: int = 3
 
     # 数据增强参数
-    DEFAULT_DEGREES: float = 15.0
+    DEFAULT_DEGREES: float = 5.0
     DEFAULT_TRANSLATE: float = 0.1
     DEFAULT_SCALE: float = 0.5
     DEFAULT_SHEAR: float = 0.0
