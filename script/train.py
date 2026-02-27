@@ -88,6 +88,11 @@ def train_model(model_path, dataset_yaml_path, project_dir, exp_name, dataset_na
         mixup=TRAINING_CONSTANTS.DEFAULT_MIXUP,
         copy_paste=TRAINING_CONSTANTS.DEFAULT_COPY_PASTE,
 
+        # ========== HSV 颜色增强 (解决颜色变化问题) ==========
+        hsv_h=0.05,  # 色相增强，从 0.015 增加到 0.05 (约 ±18°)
+        hsv_s=0.7,
+        hsv_v=0.4,
+
         # ========== 增量训练参数 ==========
         freeze=freeze,
 
@@ -96,7 +101,7 @@ def train_model(model_path, dataset_yaml_path, project_dir, exp_name, dataset_na
         single_cls=True,
 
         # ========== 优化器与学习率 ==========
-        optimizer='auto',
+        optimizer='AdamW',  # 使用 AdamW 优化器
         lr0=TRAINING_CONSTANTS.DEFAULT_LR,
         lrf=0.01,
         momentum=TRAINING_CONSTANTS.DEFAULT_MOMENTUM,
