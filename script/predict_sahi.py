@@ -2,6 +2,8 @@ from sahi import AutoDetectionModel
 from sahi.predict import get_sliced_prediction
 import os
 from pathlib import Path
+
+import cv2
 import torch
 
 # 导入工程化工具
@@ -86,6 +88,28 @@ def start_predict(model_path, image_path, dataset_name=None, output_dir=None, mo
     logger.info(f"输出目录: {model_dataset_dir}")
     logger.info(f"输出文件: {output_path}.png")
 
+    # 根据图片大小自适应调整切片参数
+    img = cv2.imread(image_path)
+    img_h, img_w = img.shape[:2]
+    max_dim = max(img_h, img_w)
+
+    # 自适应切片大小
+    if max_dim <= 1024:
+        slice_size = 640
+        overlap_ratio = 0.5
+    elif max_dim <= 2048:
+        slice_size = 1024
+        overlap_ratio = 0.3
+    elif max_dim <= 4096:
+        slice_size = 1536
+        overlap_ratio = 0.25
+    else:
+        slice_size = 2048
+        overlap_ratio = 0.2
+
+    logger.info(f"图片尺寸: {img_w}x{img_h}")
+    logger.info(f"自适应切片: {slice_size}x{slice_size}, 重叠比例: {overlap_ratio}")
+
     # 2. 加载模型 (使用 SAHI 的封装器，明确指定任务类型)
     detection_model = AutoDetectionModel.from_pretrained(
         model_type="ultralytics",
@@ -100,10 +124,10 @@ def start_predict(model_path, image_path, dataset_name=None, output_dir=None, mo
     result = get_sliced_prediction(
         image_path,
         detection_model,
-        slice_height=INFERENCE_CONSTANTS.DEFAULT_SLICE_SIZE,
-        slice_width=INFERENCE_CONSTANTS.DEFAULT_SLICE_SIZE,
-        overlap_height_ratio=INFERENCE_CONSTANTS.DEFAULT_OVERLAP_RATIO,
-        overlap_width_ratio=INFERENCE_CONSTANTS.DEFAULT_OVERLAP_RATIO,
+        slice_height=slice_size,  # 使用自适应切片大小
+        slice_width=slice_size,
+        overlap_height_ratio=overlap_ratio,  # 使用自适应重叠比例
+        overlap_width_ratio=overlap_ratio,
         postprocess_type="NMS",
         postprocess_match_metric="IOS",
         postprocess_match_threshold=INFERENCE_CONSTANTS.DEFAULT_MATCH_THRESHOLD,

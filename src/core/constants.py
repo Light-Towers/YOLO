@@ -9,7 +9,7 @@ from typing import List
 @dataclass
 class ImageConstants:
     """图像相关常量"""
-    DEFAULT_IMAGE_SIZE: int = 640
+    DEFAULT_IMAGE_SIZE: int = 1024
     MAX_IMAGE_SIZE: int = 4096
     MIN_IMAGE_SIZE: int = 32
     SUPPORTED_FORMATS: List[str] = None
