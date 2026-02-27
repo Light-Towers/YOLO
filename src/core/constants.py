@@ -25,7 +25,7 @@ class TrainingConstants:
     DEFAULT_EPOCHS: int = 300
     DEFAULT_PATIENCE: int = 50
     DEFAULT_BATCH: float = 0.9
-    DEFAULT_LR: float = 0.01
+    DEFAULT_LR: float = 0.001
     DEFAULT_MOMENTUM: float = 0.937
     DEFAULT_WEIGHT_DECAY: float = 0.0005
     WARMUP_EPOCHS: int = 3
@@ -48,8 +48,8 @@ class InferenceConstants:
     """推理相关常量"""
     DEFAULT_CONFIDENCE: float = 0.7
     DEFAULT_IOU: float = 0.2
-    DEFAULT_SLICE_SIZE: int = 640
-    DEFAULT_OVERLAP_RATIO: float = 0.5
+    DEFAULT_SLICE_SIZE: int = 1024  # 增加到 1024，减少大图片切片数量
+    DEFAULT_OVERLAP_RATIO: float = 0.3  # 减少重叠比例，提高推理速度
     DEFAULT_MATCH_THRESHOLD: float = 0.5
 
 
