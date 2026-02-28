@@ -192,15 +192,11 @@ class Tiler:
         }
 
     def _process_tile(self, tile_id: int, x: int, y: int, x_end: int, y_end: int, stats: dict) -> dict:
-        """处理单个切片 - 步骤1只生成png+json，不做分类"""
+        """处理单个切片 - 根据是否有标注分别保存到 annotated/ 或 background/ 目录"""
         tile_w, tile_h = x_end - x, y_end - y
         tile_img = self.img[y:y_end, x:x_end]
 
         tile_name = f"{_convert_to_pinyin(self.image_path.stem)}_tile_{tile_id:04d}.png"
-
-        # 保存图像
-        img_path = self.output_dir / tile_name
-        cv2.imwrite(str(img_path), tile_img)
 
         # 处理标注
         annotations = []
@@ -215,14 +211,28 @@ class Tiler:
             else:
                 stats['skipped'] += 1
 
-        # 步骤1：保存JSON格式标注（步骤2再根据是否有标注进行分类）
-        if self.save_json:
-            self._save_json_annotation(tile_name, tile_w, tile_h, annotations)
+        # 根据是否有标注选择子目录
+        has_annotation = len(annotations) > 0
+        target_subdir = "annotated" if has_annotation else "background"
+        target_dir = self.output_dir / target_subdir
+        safe_mkdir(target_dir)
 
-        return {'name': tile_name, 'annotations': len(annotations)}
+        # 保存图像到对应子目录
+        img_path = target_dir / tile_name
+        cv2.imwrite(str(img_path), tile_img)
 
-    def _save_json_annotation(self, tile_name: str, tile_w: int, tile_h: int, annotations: List[dict]):
+        # 如果有标注且需要保存JSON，则保存
+        if self.save_json and has_annotation:
+            self._save_json_annotation(tile_name, tile_w, tile_h, annotations, target_dir)
+
+        return {'name': tile_name, 'annotations': len(annotations), 'subdir': target_subdir}
+
+    def _save_json_annotation(self, tile_name: str, tile_w: int, tile_h: int, annotations: List[dict], target_dir: Path = None):
         """保存JSON格式标注（用于标注工具检查）"""
+
+        # 如果未指定目标目录，使用默认输出目录
+        if target_dir is None:
+            target_dir = self.output_dir
 
         # 转换为像素坐标
         shapes = []
@@ -248,8 +258,8 @@ class Tiler:
             "imageWidth": tile_w
         }
 
-        # 保存JSON文件（同级目录）
-        write_json(self.output_dir / tile_name.replace(".png", ".json"), json_data, indent=2)
+        # 保存JSON文件到目标目录
+        write_json(target_dir / tile_name.replace(".png", ".json"), json_data, indent=2)
 
 
 def find_matching_image(base_name: str, image_dir: Path) -> Path:
@@ -419,7 +429,11 @@ def process_dataset(
 
     # 统计切分结果
     tiling_dirs = list(tmp_base_dir.glob('tiling_*'))
-    total_png = sum(len(list(d.glob('*.png'))) for d in tiling_dirs)
+    # 统计所有子目录中的PNG文件（annotated和background目录）
+    total_png = sum(
+        len(list((d / 'annotated').glob('*.png'))) + len(list((d / 'background').glob('*.png')))
+        for d in tiling_dirs
+    )
     logger.info(f"\n📦 步骤1完成: {len(tiling_dirs)} 个目录, {total_png} 个切片")
 
     # ========== 步骤2: 合并并分类（annotated/background） ==========
@@ -435,35 +449,44 @@ def process_dataset(
         safe_mkdir(mix_annotated_dir)
         safe_mkdir(mix_background_dir)
 
-        # 1. 处理 tiling_* 目录中的切分数据（根据JSON内容分类）
-        logger.info("📂 分类切分数据...")
+        # 1. 处理 tiling_* 目录中的切分数据（数据已在切图时分类好）
+        logger.info("📂 合并切分数据...")
         for tiling_dir in tiling_dirs:
-            for json_file in tiling_dir.glob('*.json'):
-                try:
-                    data = read_json(json_file)
-                    has_annotation = len(data.get('shapes', [])) > 0
-                    json_stem = json_file.stem
-                    
-                    # 查找匹配图片
-                    img_file = None
-                    for ext in ['.png', '.jpg', '.jpeg']:
-                        candidate = json_file.parent / f"{json_stem}{ext}"
-                        if candidate.exists():
-                            img_file = candidate
-                            break
-                    
-                    if not img_file:
-                        logger.warning(f"⚠️  跳过 {json_stem}: 找不到匹配图片")
+            # 从 annotated 子目录复制有标注的数据
+            annotated_dir = tiling_dir / 'annotated'
+            if annotated_dir.exists():
+                for json_file in annotated_dir.glob('*.json'):
+                    try:
+                        json_stem = json_file.stem
+                        # 查找匹配图片
+                        img_file = None
+                        for ext in ['.png', '.jpg', '.jpeg']:
+                            candidate = annotated_dir / f"{json_stem}{ext}"
+                            if candidate.exists():
+                                img_file = candidate
+                                break
+
+                        if not img_file:
+                            logger.warning(f"⚠️  跳过 {json_stem}: 找不到匹配图片")
+                            continue
+
+                        # 复制到 annotated 目标目录
+                        shutil.copy2(json_file, mix_annotated_dir)
+                        shutil.copy2(img_file, mix_annotated_dir)
+                    except Exception as e:
+                        logger.error(f"❌ 复制失败 {json_file.name}: {e}")
                         continue
-                    
-                    # 根据是否有标注选择目标目录
-                    target_dir = mix_annotated_dir if has_annotation else mix_background_dir
-                    shutil.copy2(json_file, target_dir)
-                    shutil.copy2(img_file, target_dir)
-                    
-                except Exception as e:
-                    logger.error(f"❌ 分类失败 {json_file.name}: {e}")
-                    continue
+
+            # 从 background 子目录复制背景图
+            background_dir = tiling_dir / 'background'
+            if background_dir.exists():
+                for png_file in background_dir.glob('*.png'):
+                    try:
+                        # 背景图只有PNG，没有JSON
+                        shutil.copy2(png_file, mix_background_dir)
+                    except Exception as e:
+                        logger.error(f"❌ 复制失败 {png_file.name}: {e}")
+                        continue
 
         # 2. 合并 manual_datasets_dir 中的手动标注数据（全部视为有标注）
         if manual_datasets_dir:
@@ -488,7 +511,7 @@ def process_dataset(
 
         # 统计分类结果
         annotated_count = len(list(mix_annotated_dir.glob('*.json')))
-        background_count = len(list(mix_background_dir.glob('*.json')))
+        background_count = len(list(mix_background_dir.glob('*.png')))  # 背景图只有PNG，没有JSON
         logger.info(f"\n📦 步骤2完成:")
         logger.info(f"   ✅ 有标注(annotated): {annotated_count} 个")
         logger.info(f"   ⚪ 背景图(background): {background_count} 个")
@@ -584,25 +607,25 @@ def process_dataset(
 
         # 处理 background 目录（智能筛选，保证原始图片来源多样性）
         logger.info("📂 处理背景图（智能筛选）...")
-        
+
         # 计算应该保留的背景图数量
         annotated_train_count = train_count
         max_background_count = int(annotated_train_count * max_background_ratio / (1 - max_background_ratio))
-        
+
         # 收集所有背景图并按原始图片分组
-        # 文件名格式: {original_name}_tile_{tile_id}.json
-        background_files = list(mix_background_dir.glob('*.json'))
+        # 背景图只有PNG文件，格式: {original_name}_tile_{tile_id}.png
+        background_files = list(mix_background_dir.glob('*.png'))
         
         # 按原始图片来源分组
         source_groups = defaultdict(list)
-        for json_file in background_files:
-            # 解析原始图片名称 (如 hongmu_tile_0001.json -> hongmu)
-            stem = json_file.stem
+        for png_file in background_files:
+            # 解析原始图片名称 (如 hongmu_tile_0001.png -> hongmu)
+            stem = png_file.stem
             if '_tile_' in stem:
                 source_name = stem.rsplit('_tile_', 1)[0]
             else:
                 source_name = 'unknown'
-            source_groups[source_name].append(json_file)
+            source_groups[source_name].append(png_file)
         
         # 智能筛选策略：
         # 1. 优先从样本量多的来源组中选取（数据更丰富的来源）
@@ -654,37 +677,26 @@ def process_dataset(
             logger.info(f"   📊 智能筛选完成，选中 {len(selected_backgrounds)} 个背景图")
             for source_name, files in sorted_groups[:5]:  # 显示前5个来源
                 # 计算该来源被选中的数量
-                selected_count = sum(1 for f in selected_backgrounds 
-                                   if (f.parent / f.stem).name.startswith(source_name))
+                selected_count = sum(1 for f in selected_backgrounds
+                                   if f.stem.startswith(source_name))
                 total_count = len(files)
                 if selected_count > 0:
                     logger.info(f"      • {source_name}: {selected_count}/{total_count}")
         
         background_files = selected_backgrounds
-        
-        for json_file in background_files:
-            try:
-                json_stem = json_file.stem
-                # 查找匹配图片
-                image_file = None
-                for ext in ['.png', '.jpg', '.jpeg']:
-                    candidate = mix_background_dir / f"{json_stem}{ext}"
-                    if candidate.exists():
-                        image_file = candidate
-                        break
 
-                if not image_file:
-                    logger.warning(f"⚠️  跳过 {json_stem}: 找不到匹配图片")
-                    continue
+        for png_file in background_files:
+            try:
+                json_stem = png_file.stem
 
                 # 背景图：空标注，强制放训练集
-                shutil.copy2(image_file, final_train_img_dir / image_file.name)
+                shutil.copy2(png_file, final_train_img_dir / png_file.name)
                 (final_train_lbl_dir / f"{json_stem}.txt").write_text('', encoding='utf-8')
                 train_count += 1
                 json_count += 1
 
             except Exception as e:
-                logger.error(f"❌ 处理背景图失败 {json_file.name}: {e}")
+                logger.error(f"❌ 处理背景图失败 {png_file.name}: {e}")
                 continue
 
         logger.info(f"\n📦 步骤3完成: 转换 {json_count} 个 JSON 到 YOLO 格式")
@@ -745,7 +757,7 @@ if __name__ == "__main__":
     process_dataset(
         input_source="annotations/",
         merge_manual_datasets=True,
-        manual_datasets_dir="datasets/manual_booth_annotations",  # 支持多个目录（逗号分隔）
+        manual_datasets_dir="datasets/manual_booth_annotations, datasets/new_20260226",  # 支持多个目录（逗号分隔）
         final_output_dir="datasets/booth_final_merged",
         clean_temp=True,
         tile_size=1024,
