@@ -51,7 +51,7 @@ def convert_detection_to_annotation(detection_file, output_file, image_width=192
         shape = {
             "label": "booth",  # 默认使用booth作为标签名
             "points": points,
-            "shape_type": "polygon",  # 使用polygon而不是rotation
+            "shape_type": "rotation",  # YOLO-OBB 旋转边界框
             "direction": 0.0,
             "group_id": None,
             "difficult": False,
