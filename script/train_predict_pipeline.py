@@ -347,7 +347,7 @@ def main():
     project_dir = pipeline.project_dir
 
     # 生成时间戳（精确到小时），用于 exp_name
-    time = datetime.now().strftime("%Y%m%d_%H")
+    time = datetime.now().strftime("%Y%m%d_%H%M")
     exp_name = f"exp_{time}"
 
     # ===== 场景1: 完整流程（训练 + 预测）=====
