@@ -18,17 +18,24 @@ def convert_detection_to_annotation(detection_file, output_file, image_width=192
         output_file: 输出标注JSON文件路径
         image_width: 图像宽度（默认1920）
         image_height: 图像高度（默认800）
+        images_dir: 图片目录路径（用于查找匹配的图片）
     """
     # 读取检测结果
     with open(detection_file, 'r', encoding='utf-8') as f:
         detections = json.load(f)
+
+    # 查找匹配的图片
+    detection_name = Path(detection_file).name
+    image_path = ""
+    if images_dir:
+        image_path = find_matching_image(detection_name, images_dir)
 
     # 构建标注数据结构（labelme格式）
     annotation_data = {
         "version": "5.10.1",
         "flags": {},
         "shapes": [],
-        "imagePath": "",
+        "imagePath": image_path,
         "imageData": None,
         "imageHeight": image_height,
         "imageWidth": image_width
@@ -68,10 +75,11 @@ def convert_detection_to_annotation(detection_file, output_file, image_width=192
     print(f"转换完成!")
     print(f"输入文件: {detection_file}")
     print(f"输出文件: {output_file}")
+    print(f"图片路径: {image_path}")
     print(f"共转换 {len(annotation_data['shapes'])} 个标注对象")
 
 
-def batch_convert(input_dir, output_dir, image_width=1920, image_height=800):
+def batch_convert(input_dir, output_dir, image_width=1920, image_height=800, images_dir=None):
     """
     批量转换目录下所有检测文件
 
@@ -80,6 +88,7 @@ def batch_convert(input_dir, output_dir, image_width=1920, image_height=800):
         output_dir: 输出目录
         image_width: 图像宽度
         image_height: 图像高度
+        images_dir: 图片目录路径
     """
     input_path = Path(input_dir)
     output_path = Path(output_dir)
@@ -105,7 +114,8 @@ def batch_convert(input_dir, output_dir, image_width=1920, image_height=800):
             detection_file,
             output_file,
             image_width,
-            image_height
+            image_height,
+            images_dir
         )
 
 
@@ -115,14 +125,15 @@ def main():
     parser.add_argument('output', type=str, help='输出文件或目录')
     parser.add_argument('--width', type=int, default=1920, help='图像宽度（默认1920）')
     parser.add_argument('--height', type=int, default=800, help='图像高度（默认800）')
+    parser.add_argument('--images_dir', type=str, default=None, help='图片目录路径（用于设置imagePath）')
     parser.add_argument('--batch', action='store_true', help='批量转换模式')
 
     args = parser.parse_args()
 
     if args.batch:
-        batch_convert(args.input, args.output, args.width, args.height)
+        batch_convert(args.input, args.output, args.width, args.height, args.images_dir)
     else:
-        convert_detection_to_annotation(args.input, args.output, args.width, args.height)
+        convert_detection_to_annotation(args.input, args.output, args.width, args.height, args.images_dir)
 
 
 if __name__ == '__main__':
