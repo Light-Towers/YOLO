@@ -92,10 +92,11 @@ class PipelineConfig:
         # 开关
         self.do_train = False
         self.do_predict = False
-        
+
         # 模型配置（None表示使用默认逻辑）
         self.predict_models = None    # 预测用的模型路径列表
         self.freeze = None             # 冻结层配置（如 None, 10, [0,1,2,3]）
+        self.resume = False            # 是否从检查点恢复训练
 
 
 # ========== 数据集管理 ==========
@@ -177,10 +178,10 @@ class Trainer:
     def _train_one(self, model_path, model_name, dataset):
         """训练单个模型"""
         logger.info(f"训练模型: {model_name}")
-        
+
         if not model_path.exists():
             logger.warning(f"模型未找到: {model_path}，将自动下载")
-        
+
         best_path = train_model(
             model_path,
             dataset.get_yaml_path(),
@@ -188,9 +189,10 @@ class Trainer:
             self.config.exp_name,
             self.config.dataset_name,
             epochs=self.config.epochs,
-            freeze=self.config.freeze
+            freeze=self.config.freeze,
+            resume=self.config.resume
         )
-        
+
         return best_path
 
 
@@ -292,7 +294,7 @@ class Pipeline:
         for key, value in kwargs.items():
             if hasattr(self.config, key):
                 setattr(self.config, key, value)
-        
+
         self.model_names = kwargs.get('model_names', [])
         
         # 验证
@@ -348,17 +350,18 @@ def main():
     time = datetime.now().strftime("%Y%m%d_%H")
     exp_name = f"exp_{time}"
 
-    # # ===== 场景1: 完整流程（训练 + 预测）=====
-    # # 使用预训练模型 yolov8s-obb.pt 训练，然后用训练好的模型预测
-    # pipeline.setup(
-    #     do_train=True,
-    #     do_predict=True,
-    #     dataset_name="booth_seg",
-    #     exp_name=exp_name,
-    #     epochs=3,
-    #     prediction_images=[f"{project_dir}/images/11届猪业.jpeg"],
-    #     model_names=["yolov8s-obb.pt"]  # 使用默认预训练模型
-    # )
+    # ===== 场景1: 完整流程（训练 + 预测）=====
+    # 使用预训练模型 yolo11m-obb.pt 训练，然后用训练好的模型预测
+    pipeline.setup(
+        do_train=True,
+        do_predict=True,
+        dataset_name="booth_seg",
+        exp_name=exp_name,
+        epochs=3,
+        prediction_images=[f"{project_dir}/images/"],
+        model_names=["yolo11m-obb.pt"],  # 使用默认预训练模型
+        # resume=True  # 从检查点恢复训练（需同步修改：exp_name、model_names）
+    )
     
     # ===== 场景2: 只训练（不预测）=====
     # pipeline.setup(
@@ -367,7 +370,7 @@ def main():
     #     dataset_name="booth_seg",
     #     exp_name=exp_name,
     #     epochs=100,
-    #     model_names=["yolov8s-obb.pt"]
+    #     model_names=["yolo11m-obb.pt"]
     # )
     
     # ===== 场景3: 只预测（使用上次训练的模型）=====
@@ -381,19 +384,19 @@ def main():
     #     # ]
     # )
     
-    # # ===== 场景4: 基于已训练模型继续训练（增量训练）=====
-    pipeline.setup(
-        do_train=True,
-        do_predict=True,
-        dataset_name="booth_final_merged_20260226_1530",
-        exp_name=exp_name,
-        epochs=50,
-        prediction_images=[f"{project_dir}/images/"],
-        model_names=[  # 指定已训练好的模型路径
-            f"{project_dir}/models/train/yolo11m-obb-20260211.pt"
-        ],
-        freeze=10  # 冻结前10层（用于增量训练，只训练检测头）
-    )
+    # # # ===== 场景4: 基于已训练模型继续训练（增量训练）=====
+    # pipeline.setup(
+    #     do_train=True,
+    #     do_predict=True,
+    #     dataset_name="booth_final_merged_20260226_1530",
+    #     exp_name=exp_name,
+    #     epochs=50,
+    #     prediction_images=[f"{project_dir}/images/"],
+    #     model_names=[  # 指定已训练好的模型路径
+    #         f"{project_dir}/models/train/yolo11m-obb-20260211.pt"
+    #     ],
+    #     freeze=10  # 冻结前10层（用于增量训练，只训练检测头）
+    # )
     
     # ===== 场景5: 用任意模型预测（不训练）=====
     # pipeline.setup(
