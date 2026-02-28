@@ -757,7 +757,7 @@ if __name__ == "__main__":
     process_dataset(
         input_source="annotations/",
         merge_manual_datasets=True,
-        manual_datasets_dir="datasets/manual_booth_annotations, datasets/new_20260226",  # 支持多个目录（逗号分隔）
+        manual_datasets_dir="datasets/manual_booth_annotations, datasets/new_20260226_1530",  # 支持多个目录（逗号分隔）
         final_output_dir="datasets/booth_final_merged",
         clean_temp=True,
         tile_size=1024,
