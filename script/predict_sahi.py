@@ -137,7 +137,7 @@ def start_predict(model_path, image_path, dataset_name=None, output_dir=None, mo
     json_path = model_dataset_dir / f"{output_filename}.json"
     write_json(json_path, summary_data, indent=4)
 
-    logger.info(f"SAHI prediction completed. Results saved to {model_dataset_dir}")
+    logger.info("------------------------------------/n")
 
 
 if __name__ == "__main__":
