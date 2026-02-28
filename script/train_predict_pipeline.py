@@ -233,17 +233,18 @@ class Predictor:
     def predict(self, models):
         """执行预测"""
         images = self.get_images()
-        
+
         if not images:
             logger.warning("没有找到待预测图片")
             return
-        
+
         logger.info(f"找到 {len(images)} 张待预测图片")
         logger.info(f"{'='*50}")
         logger.info("开始预测")
         logger.info(f"{'='*50}")
-        
+
         for model_path, model_name in models:
+            logger.info(f"使用模型: {model_path}")
             self._predict_one(model_path, model_name, images)
     
     def _predict_one(self, model_path, model_name, images):
@@ -342,25 +343,29 @@ def main():
     """使用示例"""
     pipeline = Pipeline()
     project_dir = pipeline.project_dir
-    
-    # ===== 场景1: 完整流程（训练 + 预测）=====
-    # 使用预训练模型 yolov8s-obb.pt 训练，然后用训练好的模型预测
-    pipeline.setup(
-        do_train=True,
-        do_predict=True,
-        dataset_name="booth_seg",
-        exp_name="exp_v1",
-        epochs=3,
-        prediction_images=[f"{project_dir}/images/11届猪业.jpeg"],
-        model_names=["yolov8s-obb.pt"]  # 使用默认预训练模型
-    )
+
+    # 生成时间戳（精确到小时），用于 exp_name
+    time = datetime.now().strftime("%Y%m%d_%H")
+    exp_name = f"exp_{time}"
+
+    # # ===== 场景1: 完整流程（训练 + 预测）=====
+    # # 使用预训练模型 yolov8s-obb.pt 训练，然后用训练好的模型预测
+    # pipeline.setup(
+    #     do_train=True,
+    #     do_predict=True,
+    #     dataset_name="booth_seg",
+    #     exp_name=exp_name,
+    #     epochs=3,
+    #     prediction_images=[f"{project_dir}/images/11届猪业.jpeg"],
+    #     model_names=["yolov8s-obb.pt"]  # 使用默认预训练模型
+    # )
     
     # ===== 场景2: 只训练（不预测）=====
     # pipeline.setup(
     #     do_train=True,
     #     do_predict=False,
     #     dataset_name="booth_seg",
-    #     exp_name="exp_v1",
+    #     exp_name=exp_name,
     #     epochs=100,
     #     model_names=["yolov8s-obb.pt"]
     # )
@@ -369,24 +374,26 @@ def main():
     # pipeline.setup(
     #     do_train=False,
     #     do_predict=True,
-    #     dataset_name="booth_seg",  # 用于输出目录命名
-    #     prediction_images=[f"{project_dir}/images/"]
+    #     prediction_images=[f"{project_dir}/images/"],
     #     # 不指定 predict_models，自动使用注册表中的模型
+    #     # predict_models=[  # 指定任意模型路径
+    #     #     f"{project_dir}/my_custom_model.pt"
+    #     # ]
     # )
     
-    # ===== 场景4: 基于已训练模型继续训练（增量训练）=====
-    # pipeline.setup(
-    #     do_train=True,
-    #     do_predict=True,
-    #     dataset_name="booth_seg",
-    #     exp_name="exp_v2",
-    #     epochs=50,
-    #     prediction_images=[f"{project_dir}/images/"],
-    #     model_names=[  # 指定已训练好的模型路径
-    #         f"{project_dir}/output/models/yolov8s-obb/exp_v1/weights/best.pt"
-    #     ],
-    #     freeze=10  # 冻结前10层（用于增量训练，只训练检测头）
-    # )
+    # # ===== 场景4: 基于已训练模型继续训练（增量训练）=====
+    pipeline.setup(
+        do_train=True,
+        do_predict=True,
+        dataset_name="booth_final_merged_20260226_1530",
+        exp_name=exp_name,
+        epochs=50,
+        prediction_images=[f"{project_dir}/images/"],
+        model_names=[  # 指定已训练好的模型路径
+            f"{project_dir}/models/train/yolo11m-obb-20260211.pt"
+        ],
+        freeze=10  # 冻结前10层（用于增量训练，只训练检测头）
+    )
     
     # ===== 场景5: 用任意模型预测（不训练）=====
     # pipeline.setup(
