@@ -21,12 +21,12 @@ from src.utils import (
 # 获取项目logger
 logger = get_logger('train')
 
-def train_model(model_path, dataset_yaml_path, project_dir, exp_name, dataset_name, epochs=300, freeze=None):
+def train_model(model_path, dataset_yaml_path, project_dir, exp_name, dataset_name, epochs=300, freeze=None, resume=False):
     """
     执行模型训练的核心函数
 
     Args:
-        model_path: 模型文件路径
+        model_path: 模型文件路径（resume=True时为last.pt路径）
         dataset_yaml_path: 数据集配置文件路径
         project_dir: 项目根目录
         exp_name: 实验名称
@@ -36,19 +36,27 @@ def train_model(model_path, dataset_yaml_path, project_dir, exp_name, dataset_na
             - None: 不冻结任何层
             - 10: 冻结前10层
             - [0,1,2,3]: 冻结指定层索引的列表
+        resume: 是否从检查点恢复训练
     """
     # 使用工具函数获取设备
     device = get_device()
     # 动态计算工作线程：取 CPU 核心数的一半，最大不超过 8
     workers = min(8, (os.cpu_count() or 1) // 2)
 
-    # 定义简化的输出路径: output/models/{model_name}/{exp_name}/
-    # 去掉 .pt 后缀作为文件夹名
-    model_folder_name = Path(model_path).stem
-    train_save_dir = project_dir / 'output' / 'models' / model_folder_name
-
     # 加载模型
     model = YOLO(str(model_path))
+
+    # 确定模型文件夹名
+    if resume:
+        logger.info(f"从检查点恢复训练: {model_path}")
+        # 恢复训练时，model_path已经是last.pt，需要获取原始模型名来确定输出目录
+        # 检查点文件路径应该是: output/models/yolo11m-obb/exp_name/weights/last.pt
+        model_folder_name = Path(model_path).parent.parent.parent.name
+    else:
+        model_folder_name = Path(model_path).stem
+
+    # 定义简化的输出路径: output/models/{model_name}/{exp_name}/
+    train_save_dir = project_dir / 'output' / 'models' / model_folder_name
 
     # 冻结层（用于增量训练）
     if freeze is not None:
@@ -117,7 +125,7 @@ def train_model(model_path, dataset_yaml_path, project_dir, exp_name, dataset_na
         # ========== 验证相关参数 ==========
         val=True,
         plots=True,
-        resume=False,
+        resume=resume,
 
         # ========== 调试参数 ==========
         verbose=True,
