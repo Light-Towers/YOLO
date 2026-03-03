@@ -375,7 +375,12 @@ def process_dataset(
     elif ',' in input_source:
         logger.info("📚 处理多个图片文件列表")
         for path_str in input_source.split(','):
-            p = ensure_absolute(path_str.strip(), project_root)
+            path_str = path_str.strip()
+            # 跳过空条目（例如末尾多余的逗号）
+            if not path_str:
+                continue
+
+            p = ensure_absolute(path_str, project_root)
             if not p.is_file():
                 logger.error(f"  ❌ 文件不存在: {p}")
                 continue
@@ -516,7 +521,12 @@ def process_dataset(
         if manual_datasets_dir:
             manual_dirs = []
             for dir_str in manual_datasets_dir.split(','):
-                dir_path = ensure_absolute(dir_str.strip(), project_root)
+                dir_str = dir_str.strip()
+                # 跳过空条目（例如末尾多余的逗号）
+                if not dir_str:
+                    continue
+
+                dir_path = ensure_absolute(dir_str, project_root)
                 if dir_path.is_dir():
                     manual_dirs.append(dir_path)
 
@@ -779,16 +789,16 @@ names:
 
 if __name__ == "__main__":
     # # 模式1: 处理单个文件
-    # process_dataset("annotations/2024-28届宠物水族展.json", tile_size=1024,)
+    # process_dataset("D:\Study\github\YOLO\datasets/test/2026-中药农业.jpg", tile_size=1024,)
 
     # 模式2: 批量处理文件夹
-    # process_dataset("annotations/红木.json,annotations/11届猪业.json")
+    # process_dataset("annotations/红木.png,")
 
     # 模式3: 批量处理 + 合并手动标注数据集
     process_dataset(
-        input_source="annotations/",
+        input_source="annotations/红木.png,",
         merge_manual_datasets=True,
-        manual_datasets_dir="datasets/manual_booth_annotations, datasets/new_20260226_1530",  # 支持多个目录（逗号分隔）
+        manual_datasets_dir="datasets/manual_booth_annotations, datasets/new_20260226, datasets/new_20260303, datasets/background",  # 支持多个目录（逗号分隔）
         final_output_dir=f"datasets/booth_{datetime.now().strftime('%Y%m%d_%H%M')}",
         clean_temp=True,
         tile_size=1024,
