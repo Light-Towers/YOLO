@@ -47,7 +47,9 @@ class Tiler:
 
     def __init__(self, config: Dict[str, Any]):
         self.image_path = Path(config["image_path"])
-        self.json_path = Path(config["json_path"])
+        # json_path 为可选项，None 表示无标注，切片全部归入 background
+        json_path_raw = config.get("json_path")
+        self.json_path = Path(json_path_raw) if json_path_raw else None
         self.output_dir = Path(config["output_dir"])
         self.tile_size = config.get("tile_size", DATASET_CONSTANTS.DEFAULT_TILE_SIZE)
         self.overlap = config.get("overlap", DATASET_CONSTANTS.DEFAULT_OVERLAP)
@@ -62,10 +64,15 @@ class Tiler:
         if self.img is None:
             raise ValueError(f"无法读取图像: {self.image_path}")
 
-        self.labelme_data = read_json(self.json_path)
-
-        logger.info(f"🖼️  原图尺寸: {self.img.shape[1]}x{self.img.shape[0]}")
-        logger.info(f"🏷️  标注对象数量: {len(self.labelme_data['shapes'])}")
+        # 有 JSON 则加载标注，否则视为无标注图片
+        if self.json_path and self.json_path.exists():
+            self.labelme_data = read_json(self.json_path)
+            logger.info(f"🖼️  原图尺寸: {self.img.shape[1]}x{self.img.shape[0]}")
+            logger.info(f"🏷️  标注对象数量: {len(self.labelme_data['shapes'])}")
+        else:
+            self.labelme_data = {"shapes": []}
+            logger.info(f"🖼️  原图尺寸: {self.img.shape[1]}x{self.img.shape[0]}")
+            logger.info(f"🏷️  无标注文件，切片将全部归入 background")
         logger.info(f"📁 输出目录: {self.output_dir}")
 
     def _get_all_tiles(self) -> List[Tuple[int, int, int, int, int]]:
@@ -302,14 +309,18 @@ def process_dataset(
     """
     通用的数据集处理函数
 
-    输入规则：
-    - 单个JSON文件: input_source="annotations/红木.json" → 处理单个文件
-    - 文件夹: input_source="annotations" → 批量处理文件夹下所有JSON
-    - 逗号分隔: input_source="file1.json,file2.json" → 批量处理多个文件
+    输入规则（以图片为基础，JSON 标注为可选）：
+    - 单个图片文件: input_source="images/红木.jpg"  → 处理单张图片
+    - 文件夹:       input_source="images/xx/"       → 批量处理文件夹下所有图片
+    - 逗号分隔:     input_source="a.png,b.jpg"       → 批量处理多张图片
+
+    JSON 查找规则（图片同目录下查找同名 JSON）：
+    - 图片有对应 JSON → 正常切分，有标注的切片放 annotated，无标注放 background
+    - 图片无对应 JSON → 切片全部放入 background（作为背景图）
 
     Args:
-        input_source: 输入源（JSON文件/文件夹/逗号分隔列表）
-        image_dir: 图片目录（默认: images）
+        input_source: 输入源（图片文件/文件夹/逗号分隔图片列表）
+        image_dir: 保留参数，暂未使用
         output_base_dir: 输出基础目录（默认: datasets）
         final_output_dir: 最终合并输出目录（仅在 merge_manual_datasets=True 时使用）
         temp_dir: 临时输出目录（仅在 merge_manual_datasets=True 时使用）
@@ -326,50 +337,63 @@ def process_dataset(
     Returns:
         统计信息字典
     """
-    # 获取项目根目录，用于将相对路径转为绝对路径
     project_root = get_project_root()
 
     input_path = ensure_absolute(input_source, project_root)
-    image_dir = ensure_absolute(image_dir, project_root)
     temp_dir = ensure_absolute(temp_dir, project_root) if temp_dir else project_root / "datasets" / "temp_tiler_output"
 
-    # 收集需要处理的JSON文件
-    json_files = []
+    _image_exts = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif'}
 
-    # 处理单个JSON文件
-    if input_path.is_file() and input_path.suffix.lower() == '.json':
-        logger.info(f"📁 处理单个JSON文件: {input_path}")
-        json_files = [input_path]
+    def _find_json_for_image(img_path: Path) -> Union[Path, None]:
+        """在图片同目录查找同名 JSON"""
+        j = img_path.parent / f"{img_path.stem}.json"
+        return j if j.exists() else None
 
-    # 处理文件夹
+    # 收集 (image_path, json_path_or_None) 对
+    image_json_pairs: List[Tuple[Path, Union[Path, None]]] = []
+
+    # ① 单个图片文件
+    if input_path.is_file() and input_path.suffix.lower() in _image_exts:
+        logger.info(f"📁 处理单个图片文件: {input_path}")
+        image_json_pairs = [(input_path, _find_json_for_image(input_path))]
+
+    # ② 文件夹：扫描所有图片，JSON 为可选
     elif input_path.is_dir():
         logger.info(f"📂 处理文件夹: {input_path}")
-        json_files = list(input_path.glob('*.json'))
-        if not json_files:
-            logger.warning(f"⚠️  在 {input_path} 中未找到JSON文件")
-            return {"error": "未找到JSON文件"}
-        logger.info(f"🔍 找到 {len(json_files)} 个JSON文件")
+        all_images = sorted(f for f in input_path.iterdir() if f.is_file() and f.suffix.lower() in _image_exts)
+        if not all_images:
+            logger.warning(f"⚠️  在 {input_path} 中未找到图片文件")
+            return {"error": "未找到图片文件"}
+        logger.info(f"🔍 找到 {len(all_images)} 张图片")
+        for img_path in all_images:
+            json_path = _find_json_for_image(img_path)
+            image_json_pairs.append((img_path, json_path))
+            status = "✅ 有标注" if json_path else "⚪ 无标注（背景图）"
+            logger.info(f"  🖼️  {img_path.name}  {status}")
 
-    # 处理多个JSON文件列表（逗号分隔）
+    # ③ 逗号分隔的多个图片文件
     elif ',' in input_source:
-        logger.info("📚 处理多个JSON文件列表")
+        logger.info("📚 处理多个图片文件列表")
         for path_str in input_source.split(','):
-            json_file = Path(path_str.strip())
-            if json_file.is_file():
-                json_files.append(json_file)
-                logger.info(f"  📄 {json_file.name}")
-            else:
-                logger.error(f"  ❌ 文件不存在: {json_file}")
+            p = ensure_absolute(path_str.strip(), project_root)
+            if not p.is_file():
+                logger.error(f"  ❌ 文件不存在: {p}")
+                continue
+            if p.suffix.lower() not in _image_exts:
+                logger.warning(f"  ⚠️  跳过非图片文件: {p.name}")
+                continue
+            image_json_pairs.append((p, _find_json_for_image(p)))
+            logger.info(f"  🖼️  {p.name}")
+        if not image_json_pairs:
+            logger.error("❌ 没有有效的图片文件")
+            return {"error": "没有有效的图片文件"}
 
-        if not json_files:
-            logger.error("❌ 没有有效的JSON文件")
-            return {"error": "没有有效的JSON文件"}
     else:
         logger.error(f"❌ 输入路径无效: {input_path}")
-        logger.error("💡 请提供有效的JSON文件路径、文件夹路径或逗号分隔的多个文件路径")
+        logger.error("💡 请提供图片文件路径、包含图片的文件夹路径或逗号分隔的多个图片路径")
         return {"error": "输入路径无效"}
 
-    # ========== 步骤1: 切分 input_source 中的 JSON 文件（生成切片图片 + JSON） ==========
+    # ========== 步骤1: 切分图片（生成切片图片 + JSON） ==========
     # 切分后的数据放到 datasets/tmp/tiling_xx 下
     tmp_base_dir = project_root / "datasets" / "tmp"
     safe_mkdir(tmp_base_dir)
@@ -377,32 +401,30 @@ def process_dataset(
     results = {'processed': 0, 'failed': 0, 'total_tiles': 0, 'kept': 0}
 
     logger.info("\n" + "=" * 60)
-    logger.info("📋 步骤1: 切分 JSON 文件")
+    logger.info("📋 步骤1: 切分图片")
     logger.info("=" * 60)
 
-    for json_file in sorted(json_files):
-        json_stem = json_file.stem
-        logger.info(f"\n📄 处理: {json_stem}")
+    for image_path, json_path in sorted(image_json_pairs, key=lambda x: x[0].stem):
+        img_stem = image_path.stem
+        has_json = json_path is not None
+        logger.info(f"\n📄 处理: {img_stem}  {'✅ 有标注' if has_json else '⚪ 无标注'}")
 
         try:
-            # 查找匹配的图片
-            image_path = find_matching_image(json_stem, image_dir)
-
             # 切分输出目录：datasets/tmp/tiling_xx（xx为拼音名）
-            pinyin_name = _convert_to_pinyin(json_stem)
+            pinyin_name = _convert_to_pinyin(img_stem)
             output_dir = tmp_base_dir / f"tiling_{pinyin_name}"
             safe_mkdir(output_dir)
 
             config = {
                 "image_path": str(image_path),
-                "json_path": str(json_file),
+                "json_path": str(json_path) if has_json else None,
                 "output_dir": str(output_dir),
                 "tile_size": tile_size,
                 "overlap": overlap,
                 "split_ratio": split_ratio,
                 "min_val_tiles": 3,
                 "class_names": ["booth"],
-                "dataset_name": json_stem,
+                "dataset_name": img_stem,
                 "min_area_ratio": min_area_ratio,
                 "keep_only_complete": True,
                 "save_json": True,  # 保存切片后的 JSON
@@ -417,14 +439,14 @@ def process_dataset(
             results['total_tiles'] += result['total_tiles']
             results['kept'] += result['kept']
 
-            logger.info(f"✅ {json_stem} 完成: {result['total_tiles']} 切片")
+            logger.info(f"✅ {img_stem} 完成: {result['total_tiles']} 切片")
 
         except FileNotFoundError as e:
-            logger.error(f"❌ {json_stem} 跳过: {e}")
+            logger.error(f"❌ {img_stem} 跳过: {e}")
             results['failed'] += 1
             continue
         except Exception as e:
-            logger.error(f"❌ {json_stem} 失败: {e}")
+            logger.error(f"❌ {img_stem} 失败: {e}")
             results['failed'] += 1
             continue
 
