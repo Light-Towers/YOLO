@@ -8,6 +8,7 @@ import shutil
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Union
+from datetime import datetime
 
 import cv2
 import shapely.affinity as affinity
@@ -748,7 +749,7 @@ names:
 
 if __name__ == "__main__":
     # # 模式1: 处理单个文件
-    # process_dataset("annotations/红木.json")
+    # process_dataset("annotations/2024-28届宠物水族展.json", tile_size=1024,)
 
     # 模式2: 批量处理文件夹
     # process_dataset("annotations/红木.json,annotations/11届猪业.json")
@@ -758,7 +759,7 @@ if __name__ == "__main__":
         input_source="annotations/",
         merge_manual_datasets=True,
         manual_datasets_dir="datasets/manual_booth_annotations, datasets/new_20260226_1530",  # 支持多个目录（逗号分隔）
-        final_output_dir="datasets/booth_final_merged",
+        final_output_dir=f"datasets/booth_{datetime.now().strftime('%Y%m%d_%H%M')}",
         clean_temp=True,
         tile_size=1024,
         overlap=500,
