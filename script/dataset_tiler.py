@@ -444,11 +444,15 @@ def process_dataset(
         logger.info("=" * 60)
 
         # 创建 mix_tiling 目录用于分类存储
+        # background 下分两个子目录：manual（手动指定）和 tiled（切片产生）
+        # 筛选时优先使用 manual，不足时再从 tiled 补充
         mix_dir = tmp_base_dir / "mix_tiling"
         mix_annotated_dir = mix_dir / "annotated"
-        mix_background_dir = mix_dir / "background"
+        mix_background_manual_dir = mix_dir / "background" / "manual"   # 手动指定背景图（优先）
+        mix_background_tiled_dir  = mix_dir / "background" / "tiled"    # 切片产生背景图（补充）
         safe_mkdir(mix_annotated_dir)
-        safe_mkdir(mix_background_dir)
+        safe_mkdir(mix_background_manual_dir)
+        safe_mkdir(mix_background_tiled_dir)
 
         # 1. 处理 tiling_* 目录中的切分数据（数据已在切图时分类好）
         logger.info("📂 合并切分数据...")
@@ -459,7 +463,6 @@ def process_dataset(
                 for json_file in annotated_dir.glob('*.json'):
                     try:
                         json_stem = json_file.stem
-                        # 查找匹配图片
                         img_file = None
                         for ext in ['.png', '.jpg', '.jpeg']:
                             candidate = annotated_dir / f"{json_stem}{ext}"
@@ -471,27 +474,24 @@ def process_dataset(
                             logger.warning(f"⚠️  跳过 {json_stem}: 找不到匹配图片")
                             continue
 
-                        # 复制到 annotated 目标目录
                         shutil.copy2(json_file, mix_annotated_dir)
                         shutil.copy2(img_file, mix_annotated_dir)
                     except Exception as e:
                         logger.error(f"❌ 复制失败 {json_file.name}: {e}")
                         continue
 
-            # 从 background 子目录复制背景图
+            # 从 background 子目录复制背景图 → tiled 目录
             background_dir = tiling_dir / 'background'
             if background_dir.exists():
                 for png_file in background_dir.glob('*.png'):
                     try:
-                        # 背景图只有PNG，没有JSON
-                        shutil.copy2(png_file, mix_background_dir)
+                        shutil.copy2(png_file, mix_background_tiled_dir)
                     except Exception as e:
                         logger.error(f"❌ 复制失败 {png_file.name}: {e}")
                         continue
 
-        # 2. 合并 manual_datasets_dir 中的手动标注数据（全部视为有标注）
+        # 2. 合并 manual_datasets_dir 中的手动标注数据
         if manual_datasets_dir:
-            # 支持多个目录（逗号分隔）
             manual_dirs = []
             for dir_str in manual_datasets_dir.split(','):
                 dir_path = ensure_absolute(dir_str.strip(), project_root)
@@ -499,28 +499,43 @@ def process_dataset(
                     manual_dirs.append(dir_path)
 
             if manual_dirs:
+                image_extensions = {'.png', '.jpg', '.jpeg', '.bmp', '.tiff'}
                 for manual_dir in manual_dirs:
                     logger.info(f"📂 合并手动标注数据: {manual_dir}")
-                    for json_file in manual_dir.glob('*.json'):
-                        shutil.copy2(json_file, mix_annotated_dir)
-                        json_stem = json_file.stem
-                        for ext in ['.png', '.jpg', '.jpeg']:
-                            img_file = manual_dir / f"{json_stem}{ext}"
-                            if img_file.exists():
-                                shutil.copy2(img_file, mix_annotated_dir)
-                                break
+
+                    json_stems = {f.stem for f in manual_dir.glob('*.json')}
+
+                    for item in manual_dir.iterdir():
+                        if not item.is_file():
+                            continue
+
+                        if item.suffix.lower() in image_extensions:
+                            img_stem = item.stem
+                            if img_stem in json_stems:
+                                # 有对应JSON：复制图片和JSON到 annotated 目录
+                                shutil.copy2(item, mix_annotated_dir)
+                                json_file = manual_dir / f"{img_stem}.json"
+                                if json_file.exists():
+                                    shutil.copy2(json_file, mix_annotated_dir)
+                            else:
+                                # 无对应JSON：作为背景图 → manual 目录（优先级高）
+                                shutil.copy2(item, mix_background_manual_dir)
 
         # 统计分类结果
+        _img_exts = {'.png', '.jpg', '.jpeg', '.bmp', '.tiff'}
         annotated_count = len(list(mix_annotated_dir.glob('*.json')))
-        background_count = len(list(mix_background_dir.glob('*.png')))  # 背景图只有PNG，没有JSON
+        manual_bg_count = sum(1 for f in mix_background_manual_dir.iterdir() if f.suffix.lower() in _img_exts)
+        tiled_bg_count  = sum(1 for f in mix_background_tiled_dir.iterdir()  if f.suffix.lower() in _img_exts)
         logger.info(f"\n📦 步骤2完成:")
-        logger.info(f"   ✅ 有标注(annotated): {annotated_count} 个")
-        logger.info(f"   ⚪ 背景图(background): {background_count} 个")
+        logger.info(f"   ✅ 有标注(annotated):          {annotated_count} 个")
+        logger.info(f"   ⚪ 手动背景图(manual):          {manual_bg_count} 个（优先使用）")
+        logger.info(f"   ⚪ 切片背景图(tiled):           {tiled_bg_count} 个（补充使用）")
 
         # ========== 步骤3: 将 tmp 目录转换为 YOLO 格式数据集 ==========
         logger.info("\n" + "=" * 60)
         logger.info("📋 步骤3: 转换为 YOLO 格式数据集")
         logger.info("=" * 60)
+
 
         final_output_dir = ensure_absolute(final_output_dir, project_root) if final_output_dir else project_root / "datasets" / "booth_final_merged"
         final_train_img_dir = final_output_dir / "images" / "train"
@@ -606,98 +621,91 @@ def process_dataset(
                 logger.error(f"❌ 转换失败 {json_file.name}: {e}")
                 continue
 
-        # 处理 background 目录（智能筛选，保证原始图片来源多样性）
-        logger.info("📂 处理背景图（智能筛选）...")
+        # 处理 background 目录（优先手动背景图，不足时从切片背景图补充）
+        logger.info("📂 处理背景图（优先手动背景图，不足时从切片背景图补充）...")
 
-        # 计算应该保留的背景图数量
+        # 计算应该保留的背景图总数上限
         annotated_train_count = train_count
         max_background_count = int(annotated_train_count * max_background_ratio / (1 - max_background_ratio))
 
-        # 收集所有背景图并按原始图片分组
-        # 背景图只有PNG文件，格式: {original_name}_tile_{tile_id}.png
-        background_files = list(mix_background_dir.glob('*.png'))
-        
-        # 按原始图片来源分组
-        source_groups = defaultdict(list)
-        for png_file in background_files:
-            # 解析原始图片名称 (如 hongmu_tile_0001.png -> hongmu)
-            stem = png_file.stem
-            if '_tile_' in stem:
-                source_name = stem.rsplit('_tile_', 1)[0]
-            else:
-                source_name = 'unknown'
-            source_groups[source_name].append(png_file)
-        
-        # 智能筛选策略：
-        # 1. 优先从样本量多的来源组中选取（数据更丰富的来源）
-        # 2. 使用轮询(round-robin)方式从各组选取，保证来源多样性
-        # 3. 确保每个来源至少有 min_background_per_source 个样本
-        
-        selected_backgrounds = []
-        
-        if len(background_files) <= max_background_count:
-            # 背景图数量未超限，全部使用
-            selected_backgrounds = background_files
-            logger.info(f"   ✅ 背景图总数 {len(background_files)} 未超限 ({max_background_count})，全部使用")
+        _img_exts = {'.png', '.jpg', '.jpeg', '.bmp', '.tiff'}
+
+        # 收集两类背景图
+        manual_bg_files = [f for f in mix_background_manual_dir.iterdir() if f.suffix.lower() in _img_exts]
+        tiled_bg_files  = [f for f in mix_background_tiled_dir.iterdir()  if f.suffix.lower() in _img_exts]
+
+        logger.info(f"   📌 手动背景图: {len(manual_bg_files)} 个，切片背景图: {len(tiled_bg_files)} 个")
+        logger.info(f"   📌 背景图上限: {max_background_count} 个 (比例 {max_background_ratio:.0%})")
+
+        selected_backgrounds: List[Path] = []
+
+        # 第一阶段：优先选入所有手动背景图（不超上限）
+        if len(manual_bg_files) <= max_background_count:
+            selected_backgrounds.extend(manual_bg_files)
+            logger.info(f"   ✅ 手动背景图 {len(manual_bg_files)} 个全部选入")
         else:
-            # 需要筛选：按来源丰富度排序，优先从多样性的来源选取
-            logger.info(f"   🔍 背景图共 {len(background_files)} 个，来自 {len(source_groups)} 个原始图片")
-            logger.info(f"   ⚠️ 限制为 {max_background_count} 个 (比例 {max_background_ratio:.0%})")
-            logger.info(f"   📌 每个来源最少保留: {min_background_per_source} 个")
-            
-            # 按组大小降序排序（优先从样本多的组选取）
-            sorted_groups = sorted(source_groups.items(), key=lambda x: len(x[1]), reverse=True)
-            
-            # 第一阶段：确保每个来源至少有 min_background_per_source 个样本
-            for source_name, files in sorted_groups:
-                samples_to_take = min(min_background_per_source, len(files))
-                selected_backgrounds.extend(files[:samples_to_take])
-            
-            # 第二阶段：如果还有配额，轮询补充
-            if len(selected_backgrounds) < max_background_count:
-                remaining_quota = max_background_count - len(selected_backgrounds)
-                group_indices = {name: min_background_per_source for name, _ in sorted_groups}
-                group_names = [name for name, files in sorted_groups if len(files) > min_background_per_source]
-                
-                while remaining_quota > 0 and group_names:
+            selected_backgrounds.extend(manual_bg_files[:max_background_count])
+            logger.info(f"   ⚠️ 手动背景图超出上限，截取前 {max_background_count} 个")
+
+        # 第二阶段：若仍有配额，从切片背景图中按来源多样性补充
+        remaining_quota = max_background_count - len(selected_backgrounds)
+        if remaining_quota > 0 and tiled_bg_files:
+            logger.info(f"   🔄 还有 {remaining_quota} 个配额，从切片背景图中补充...")
+
+            # 按原始图片来源分组，保证来源多样性
+            tiled_groups: Dict[str, List[Path]] = defaultdict(list)
+            for img_file in tiled_bg_files:
+                stem = img_file.stem
+                source_name = stem.rsplit('_tile_', 1)[0] if '_tile_' in stem else stem
+                tiled_groups[source_name].append(img_file)
+
+            sorted_tiled = sorted(tiled_groups.items(), key=lambda x: len(x[1]), reverse=True)
+
+            # 每个来源先保证 min_background_per_source 个，再轮询补充
+            tiled_selected: List[Path] = []
+            for _, files in sorted_tiled:
+                tiled_selected.extend(files[:min_background_per_source])
+
+            if len(tiled_selected) < remaining_quota:
+                group_indices = {name: min_background_per_source for name, _ in sorted_tiled}
+                group_names = [name for name, files in sorted_tiled if len(files) > min_background_per_source]
+                quota = remaining_quota - len(tiled_selected)
+                while quota > 0 and group_names:
                     for source_name in list(group_names):
-                        if remaining_quota <= 0:
+                        if quota <= 0:
                             break
-                        
-                        group = source_groups[source_name]
+                        group = tiled_groups[source_name]
                         idx = group_indices[source_name]
-                        
                         if idx < len(group):
-                            selected_backgrounds.append(group[idx])
+                            tiled_selected.append(group[idx])
                             group_indices[source_name] += 1
-                            remaining_quota -= 1
+                            quota -= 1
                         else:
                             group_names.remove(source_name)
-            
-            # 输出选取统计
-            logger.info(f"   📊 智能筛选完成，选中 {len(selected_backgrounds)} 个背景图")
-            for source_name, files in sorted_groups[:5]:  # 显示前5个来源
-                # 计算该来源被选中的数量
-                selected_count = sum(1 for f in selected_backgrounds
-                                   if f.stem.startswith(source_name))
-                total_count = len(files)
-                if selected_count > 0:
-                    logger.info(f"      • {source_name}: {selected_count}/{total_count}")
-        
+
+            supplement = tiled_selected[:remaining_quota]
+            selected_backgrounds.extend(supplement)
+            logger.info(f"   ✅ 从切片背景图补充 {len(supplement)} 个")
+        elif remaining_quota <= 0:
+            logger.info(f"   ✅ 手动背景图已满足上限，无需使用切片背景图")
+        else:
+            logger.info(f"   ℹ️ 无切片背景图可供补充")
+
+        logger.info(f"   📊 最终选用背景图: {len(selected_backgrounds)} 个")
         background_files = selected_backgrounds
 
-        for png_file in background_files:
+        for img_file in background_files:
             try:
-                json_stem = png_file.stem
+                img_stem = img_file.stem
 
                 # 背景图：空标注，强制放训练集
-                shutil.copy2(png_file, final_train_img_dir / png_file.name)
-                (final_train_lbl_dir / f"{json_stem}.txt").write_text('', encoding='utf-8')
+                shutil.copy2(img_file, final_train_img_dir / img_file.name)
+                (final_train_lbl_dir / f"{img_stem}.txt").write_text('', encoding='utf-8')
                 train_count += 1
                 json_count += 1
 
             except Exception as e:
-                logger.error(f"❌ 处理背景图失败 {png_file.name}: {e}")
+                logger.error(f"❌ 处理背景图失败 {img_file.name}: {e}")
                 continue
 
         logger.info(f"\n📦 步骤3完成: 转换 {json_count} 个 JSON 到 YOLO 格式")
