@@ -31,7 +31,7 @@ class TrainingConstants:
     WARMUP_EPOCHS: int = 3
 
     # 数据增强参数
-    DEFAULT_DEGREES: float = 5.0
+    DEFAULT_DEGREES: float = 0.0
     DEFAULT_TRANSLATE: float = 0.1
     DEFAULT_SCALE: float = 0.5
     DEFAULT_SHEAR: float = 0.0
@@ -41,6 +41,9 @@ class TrainingConstants:
     DEFAULT_MOSAIC: float = 1.0
     DEFAULT_MIXUP: float = 0.1
     DEFAULT_COPY_PASTE: float = 0.0
+
+    # 多尺度训练
+    DEFAULT_MULTI_SCALE: float = 0.5
 
 
 @dataclass

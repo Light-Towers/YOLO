@@ -97,6 +97,7 @@ class PipelineConfig:
         self.predict_models = None    # 预测用的模型路径列表
         self.freeze = None             # 冻结层配置（如 None, 10, [0,1,2,3]）
         self.resume = False            # 是否从检查点恢复训练
+        self.multi_scale = 0.5         # 多尺度训练参数
 
 
 # ========== 数据集管理 ==========
@@ -190,7 +191,8 @@ class Trainer:
             self.config.dataset_name,
             epochs=self.config.epochs,
             freeze=self.config.freeze,
-            resume=self.config.resume
+            resume=self.config.resume,
+            multi_scale=self.config.multi_scale
         )
 
         return best_path

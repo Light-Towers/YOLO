@@ -52,6 +52,7 @@ training:
   # 其他参数
   dropout: 0.0
   cos_lr: true
+  multi_scale: 0.5
   single_cls: true
   overlap_mask: false
 

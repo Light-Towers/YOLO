@@ -21,7 +21,7 @@ from src.utils import (
 # 获取项目logger
 logger = get_logger('train')
 
-def train_model(model_path, dataset_yaml_path, project_dir, exp_name, dataset_name, epochs=300, freeze=None, resume=False):
+def train_model(model_path, dataset_yaml_path, project_dir, exp_name, dataset_name, epochs=300, freeze=None, resume=False, multi_scale=0.5):
     """
     执行模型训练的核心函数
 
@@ -37,6 +37,7 @@ def train_model(model_path, dataset_yaml_path, project_dir, exp_name, dataset_na
             - 10: 冻结前10层
             - [0,1,2,3]: 冻结指定层索引的列表
         resume: 是否从检查点恢复训练
+        multi_scale: 多尺度训练参数 (float, 0.5表示图像尺寸在0.5倍到1.5倍之间随机变化)
     """
     # 使用工具函数获取设备
     device = get_device()
@@ -121,6 +122,7 @@ def train_model(model_path, dataset_yaml_path, project_dir, exp_name, dataset_na
         # ========== 其他调整 ==========
         dropout=0.0,
         cos_lr=True,
+        multi_scale=multi_scale,
 
         # ========== 验证相关参数 ==========
         val=True,
@@ -178,7 +180,8 @@ def main(model='yolov8s-obb.pt',
          exp_name='train_experiment',
          epochs=300,
          project_dir=None,
-         update_dataset_path=False):
+         update_dataset_path=False,
+         multi_scale=0.5):
     """
     主函数：执行单个模型训练
 
@@ -189,6 +192,7 @@ def main(model='yolov8s-obb.pt',
         epochs: 训练轮数
         project_dir: 项目根目录路径，默认为脚本所在目录的上层目录
         update_dataset_path: 是否更新数据集yaml文件中的路径为绝对路径
+        multi_scale: 多尺度训练参数 (float, 0.5表示图像尺寸在0.5倍到1.5倍之间随机变化)
     """
     # 设置项目目录
     if project_dir:
@@ -243,7 +247,8 @@ def main(model='yolov8s-obb.pt',
         project_dir=project_dir,
         exp_name=exp_name,
         dataset_name=dataset,
-        epochs=epochs
+        epochs=epochs,
+        multi_scale=multi_scale
     )
 
     if best_model_path:
@@ -260,5 +265,6 @@ if __name__ == "__main__":
         dataset='fixed_tiled_dataset_1',  # 数据集名称
         exp_name='train_experiment',      # 实验名称
         epochs=300,                       # 训练轮数
-        update_dataset_path=False         # 是否更新数据集路径
+        update_dataset_path=False,        # 是否更新数据集路径
+        multi_scale=0.5                  # 多尺度训练参数
     )
