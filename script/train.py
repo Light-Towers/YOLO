@@ -123,6 +123,7 @@ def train_model(model_path, dataset_yaml_path, project_dir, exp_name, dataset_na
         dropout=0.0,
         cos_lr=True,
         multi_scale=multi_scale,
+        close_mosaic=TRAINING_CONSTANTS.DEFAULT_CLOSE_MOSAIC,
 
         # ========== 验证相关参数 ==========
         val=True,
