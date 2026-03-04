@@ -1,0 +1,130 @@
+{
+  "version": "3.3.6",
+  "flags": {},
+  "shapes": [
+    {
+      "kie_linking": [],
+      "direction": 0.6475171524898967,
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          1367.0611776192563,
+          629.005724764816
+        ],
+        [
+          1551.288575761028,
+          768.3358116740748
+        ],
+        [
+          1411.25,
+          953.5
+        ],
+        [
+          1227.0226018582287,
+          814.1699130907414
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {}
+    },
+    {
+      "kie_linking": [],
+      "direction": 0.6475171524898967,
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          1552.0611776192563,
+          766.505724764816
+        ],
+        [
+          1736.288575761028,
+          905.8358116740748
+        ],
+        [
+          1596.25,
+          1091.0
+        ],
+        [
+          1412.0226018582287,
+          951.6699130907414
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {}
+    },
+    {
+      "kie_linking": [],
+      "direction": 0.6475171524898967,
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          809.2486776192563,
+          218.06822476481608
+        ],
+        [
+          993.4760757610279,
+          357.3983116740748
+        ],
+        [
+          853.4375,
+          542.5625
+        ],
+        [
+          669.2101018582287,
+          403.23241309074143
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {}
+    },
+    {
+      "kie_linking": [],
+      "direction": 0.6475171524898967,
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          622.9741678153348,
+          78.85253849030627
+        ],
+        [
+          807.2015659571064,
+          218.182625399565
+        ],
+        [
+          667.1629901960785,
+          403.34681372549016
+        ],
+        [
+          482.9355920543071,
+          264.01672681623165
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {}
+    }
+  ],
+  "imagePath": "ScreenShot_2026-01-25_131245_380.png",
+  "imageData": null,
+  "imageHeight": 1137,
+  "imageWidth": 1998
+}

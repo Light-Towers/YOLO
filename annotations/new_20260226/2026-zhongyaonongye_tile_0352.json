@@ -1,0 +1,191 @@
+{
+  "version": "3.3.7",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          222.29411764705884,
+          481.29088829584447
+        ],
+        [
+          -0.4168255178549032,
+          481.29088829584447
+        ],
+        [
+          -0.4168255178549032,
+          244.84313725490196
+        ],
+        [
+          222.29411764705884,
+          244.84313725490196
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 0
+    },
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          701.0459363957597,
+          482.31802120141344
+        ],
+        [
+          464.83094512615935,
+          482.31802120141344
+        ],
+        [
+          464.83094512615935,
+          244.82435268226868
+        ],
+        [
+          701.0459363957597,
+          244.82435268226868
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 0
+    },
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          938.454287988965,
+          482.19176178491836
+        ],
+        [
+          702.2392967193647,
+          482.19176178491836
+        ],
+        [
+          702.2392967193647,
+          244.6980932657736
+        ],
+        [
+          938.454287988965,
+          244.6980932657736
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 0
+    },
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          701.0459363957597,
+          721.448455984022
+        ],
+        [
+          464.83094512615935,
+          721.448455984022
+        ],
+        [
+          464.83094512615935,
+          483.95478746487737
+        ],
+        [
+          701.0459363957597,
+          483.95478746487737
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 0
+    },
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          938.454287988965,
+          721.3221965675269
+        ],
+        [
+          702.2392967193647,
+          721.3221965675269
+        ],
+        [
+          702.2392967193647,
+          483.8285280483823
+        ],
+        [
+          938.454287988965,
+          483.8285280483823
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 0
+    },
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          223.27450980392157,
+          719.8408871745419
+        ],
+        [
+          0.1526840244294494,
+          719.8408871745419
+        ],
+        [
+          0.1526840244294494,
+          483.5686274509804
+        ],
+        [
+          223.27450980392157,
+          483.5686274509804
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 0
+    }
+  ],
+  "imagePath": "2026-zhongyaonongye_tile_0352.png",
+  "imageData": null,
+  "imageHeight": 1024,
+  "imageWidth": 1024,
+  "description": ""
+}

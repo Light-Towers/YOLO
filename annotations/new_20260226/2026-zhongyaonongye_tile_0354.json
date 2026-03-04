@@ -1,0 +1,131 @@
+{
+  "version": "3.3.7",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          693.25,
+          482.20348837209303
+        ],
+        [
+          456.05320041378695,
+          482.20348837209303
+        ],
+        [
+          456.05320041378695,
+          245.0422334662568
+        ],
+        [
+          693.25,
+          245.0422334662568
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 0
+    },
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          931.0406976744187,
+          481.91279069767444
+        ],
+        [
+          693.8438980882056,
+          481.91279069767444
+        ],
+        [
+          693.8438980882056,
+          244.7515357918382
+        ],
+        [
+          931.0406976744187,
+          244.7515357918382
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 0
+    },
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          931.0310521475317,
+          720.52383482596
+        ],
+        [
+          693.8342525613186,
+          720.52383482596
+        ],
+        [
+          693.8342525613186,
+          483.36257992012366
+        ],
+        [
+          931.0310521475317,
+          483.36257992012366
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 0
+    },
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          693.240354473113,
+          720.8145325003786
+        ],
+        [
+          456.0435548869,
+          720.8145325003786
+        ],
+        [
+          456.0435548869,
+          483.65327759454226
+        ],
+        [
+          693.240354473113,
+          483.65327759454226
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 0
+    }
+  ],
+  "imagePath": "2026-zhongyaonongye_tile_0354.png",
+  "imageData": null,
+  "imageHeight": 1024,
+  "imageWidth": 1024,
+  "description": ""
+}

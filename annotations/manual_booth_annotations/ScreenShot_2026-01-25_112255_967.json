@@ -1,0 +1,100 @@
+{
+  "version": "3.3.6",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          750.4650399226887,
+          179.07304799137825
+        ],
+        [
+          891.0414566250363,
+          582.7535290098268
+        ],
+        [
+          174.89285714285722,
+          832.1428571428571
+        ],
+        [
+          34.3164404405097,
+          428.4623761244086
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 1.2356931104119875
+    },
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          894.9890475440566,
+          588.0430072022265
+        ],
+        [
+          999.8928571428571,
+          889.2857142857142
+        ],
+        [
+          283.8631071821674,
+          1138.6336546364678
+        ],
+        [
+          178.95929758336675,
+          837.39094755298
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 1.2356931104119875
+    },
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          2058.4115505548593,
+          40.23039302241864
+        ],
+        [
+          2086.1403937587756,
+          796.4371558862771
+        ],
+        [
+          1112.3928571428573,
+          832.1428571428571
+        ],
+        [
+          1084.664013938941,
+          75.93609427899872
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 1.5341444125030175
+    }
+  ],
+  "imagePath": "ScreenShot_2026-01-25_112255_967.png",
+  "imageData": null,
+  "imageHeight": 1170,
+  "imageWidth": 2123
+}

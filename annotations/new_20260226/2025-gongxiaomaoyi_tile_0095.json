@@ -1,0 +1,71 @@
+{
+  "version": "3.3.7",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          42.24000293442174,
+          909.8591549295775
+        ],
+        [
+          341.92957746478874,
+          909.8591549295775
+        ],
+        [
+          341.92957746478874,
+          311.2676056338028
+        ],
+        [
+          42.24000293442174,
+          311.2676056338028
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 0
+    },
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          594.3526789907596,
+          907.7464788732395
+        ],
+        [
+          894.0422535211267,
+          907.7464788732395
+        ],
+        [
+          894.0422535211267,
+          309.1549295774649
+        ],
+        [
+          594.3526789907596,
+          309.1549295774649
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 0
+    }
+  ],
+  "imagePath": "2025-gongxiaomaoyi_tile_0095.png",
+  "imageData": null,
+  "imageHeight": 1024,
+  "imageWidth": 1024,
+  "description": ""
+}

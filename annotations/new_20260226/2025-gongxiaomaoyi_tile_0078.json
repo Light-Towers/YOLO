@@ -1,0 +1,191 @@
+{
+  "version": "3.3.7",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          187.94727461379847,
+          535.963435783827
+        ],
+        [
+          337.2596862371015,
+          535.963435783827
+        ],
+        [
+          337.2596862371015,
+          386.5163816900871
+        ],
+        [
+          187.94727461379847,
+          386.5163816900871
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 0
+    },
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          37.18474738068301,
+          536.1813007075743
+        ],
+        [
+          186.49715900398604,
+          536.1813007075743
+        ],
+        [
+          186.49715900398604,
+          386.73424661383433
+        ],
+        [
+          37.18474738068301,
+          386.73424661383433
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 0
+    },
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          740.0799760355993,
+          532.0168927116212
+        ],
+        [
+          889.3923876589023,
+          532.0168927116212
+        ],
+        [
+          889.3923876589023,
+          382.56983861788194
+        ],
+        [
+          740.0799760355993,
+          382.56983861788194
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 0
+    },
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          589.3174488024838,
+          532.2347576353685
+        ],
+        [
+          738.6298604257869,
+          532.2347576353685
+        ],
+        [
+          738.6298604257869,
+          382.7877035416292
+        ],
+        [
+          589.3174488024838,
+          382.7877035416292
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 0
+    },
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          590.4296263852497,
+          986.7132867132867
+        ],
+        [
+          889.972027972028,
+          986.7132867132867
+        ],
+        [
+          889.972027972028,
+          686.7656428136862
+        ],
+        [
+          590.4296263852497,
+          686.7656428136862
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 0
+    },
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          39.38067533629862,
+          990.2097902097904
+        ],
+        [
+          338.92307692307696,
+          990.2097902097904
+        ],
+        [
+          338.92307692307696,
+          690.2621463101897
+        ],
+        [
+          39.38067533629862,
+          690.2621463101897
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 0
+    }
+  ],
+  "imagePath": "2025-gongxiaomaoyi_tile_0078.png",
+  "imageData": null,
+  "imageHeight": 1024,
+  "imageWidth": 1024,
+  "description": ""
+}

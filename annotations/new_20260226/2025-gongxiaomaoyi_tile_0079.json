@@ -1,0 +1,101 @@
+{
+  "version": "3.3.7",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          316.88150432501743,
+          681.7889182058047
+        ],
+        [
+          467.27704485488124,
+          681.7889182058047
+        ],
+        [
+          467.27704485488124,
+          534.502472803867
+        ],
+        [
+          316.88150432501743,
+          534.502472803867
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 0
+    },
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          468.0688394173657,
+          681.5250659630607
+        ],
+        [
+          616.8812664907651,
+          681.5250659630607
+        ],
+        [
+          616.8812664907651,
+          534.0316622691292
+        ],
+        [
+          468.0688394173657,
+          534.0316622691292
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 0
+    },
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          617.6730610532497,
+          681.7889182058049
+        ],
+        [
+          767.0131926121372,
+          681.7889182058049
+        ],
+        [
+          767.0131926121372,
+          532.976253298153
+        ],
+        [
+          617.6730610532497,
+          532.976253298153
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 0
+    }
+  ],
+  "imagePath": "2025-gongxiaomaoyi_tile_0079.png",
+  "imageData": null,
+  "imageHeight": 1024,
+  "imageWidth": 1024,
+  "description": ""
+}

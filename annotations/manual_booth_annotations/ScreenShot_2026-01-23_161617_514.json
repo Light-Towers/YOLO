@@ -1,0 +1,101 @@
+{
+  "version": "3.3.6",
+  "flags": {},
+  "shapes": [
+    {
+      "direction": 1.1344902459330515,
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          624.4159545898438,
+          434.733642578125
+        ],
+        [
+          777.0535278320312,
+          363.56243896484375
+        ],
+        [
+          791.7446899414062,
+          395.06982421875
+        ],
+        [
+          639.1071166992188,
+          466.24102783203125
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "direction": 0.9314103643768412,
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          77.69232177734375,
+          268.95733642578125
+        ],
+        [
+          187.131103515625,
+          187.57977294921875
+        ],
+        [
+          247.78060913085938,
+          269.14288330078125
+        ],
+        [
+          138.34182739257812,
+          350.52044677734375
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "booth",
+      "score": null,
+      "points": [
+        [
+          325.8435554498371,
+          128.3026658532002
+        ],
+        [
+          373.03819075860986,
+          219.35034711778385
+        ],
+        [
+          283.2454281888476,
+          265.89449436006595
+        ],
+        [
+          236.05079288007482,
+          174.84681309548225
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rotation",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": [],
+      "direction": 1.0925761117484507
+    }
+  ],
+  "imagePath": "ScreenShot_2026-01-23_161617_514.png",
+  "imageData": null,
+  "imageHeight": 574,
+  "imageWidth": 1055,
+  "description": ""
+}

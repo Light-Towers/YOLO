@@ -796,9 +796,9 @@ if __name__ == "__main__":
 
     # 模式3: 批量处理 + 合并手动标注数据集
     process_dataset(
-        input_source="annotations/红木.png,",
+        input_source="annotations/",
         merge_manual_datasets=True,
-        manual_datasets_dir="datasets/manual_booth_annotations, datasets/new_20260226, datasets/new_20260303, datasets/background",  # 支持多个目录（逗号分隔）
+        manual_datasets_dir="annotations/manual_booth_annotations, annotations/new_20260226, annotations/new_20260303, annotations/background",  # 支持多个目录（逗号分隔）
         final_output_dir=f"datasets/booth_{datetime.now().strftime('%Y%m%d_%H%M')}",
         clean_temp=True,
         tile_size=1024,
