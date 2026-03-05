@@ -33,7 +33,7 @@ class TrainingConstants:
     # 数据增强参数
     DEFAULT_DEGREES: float = 0.0
     DEFAULT_TRANSLATE: float = 0.1
-    DEFAULT_SCALE: float = 0.5
+    DEFAULT_SCALE: float = 0.8
     DEFAULT_SHEAR: float = 0.0
     DEFAULT_PERSPECTIVE: float = 0.0
     DEFAULT_FLIPUD: float = 0.0
