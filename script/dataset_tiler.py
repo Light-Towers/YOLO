@@ -788,17 +788,18 @@ names:
 
 
 if __name__ == "__main__":
-    # # # 模式1: 处理单个文件
-    # process_dataset("D:\Study\github\YOLO\datasets/test/2026-中药农业.jpg", tile_size=1024, overlap=500,)
+    # # 模式1: 处理单个文件
+    # process_dataset("D:\Study\github\YOLO\datasets/test/test11111/2025-畜博会.png", tile_size=1024, overlap=800,)
+    
 
     # 模式2: 批量处理文件夹
     # process_dataset("annotations/红木.png,")
 
     # 模式3: 批量处理 + 合并手动标注数据集
     process_dataset(
-        input_source="annotations/红木.png",
+        input_source="annotations/",
         merge_manual_datasets=True,
-        manual_datasets_dir="annotations/manual_booth_annotations, annotations/new_20260226, annotations/background",  # 支持多个目录（逗号分隔）
+        manual_datasets_dir="annotations/manual_booth_annotations, annotations/mohu, annotations/new_20260226, annotations/background",  # 支持多个目录（逗号分隔）
         final_output_dir=f"datasets/booth_{datetime.now().strftime('%Y%m%d_%H%M')}",
         clean_temp=True,
         tile_size=1024,
