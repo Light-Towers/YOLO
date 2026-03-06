@@ -52,7 +52,7 @@ class Tiler:
         self.json_path = Path(json_path_raw) if json_path_raw else None
         self.output_dir = Path(config["output_dir"])
         self.tile_size = config.get("tile_size", DATASET_CONSTANTS.DEFAULT_TILE_SIZE)
-        self.overlap = config.get("overlap", DATASET_CONSTANTS.DEFAULT_OVERLAP)
+        self.overlap = config.get("overlap", DATASET_CONSTANTS.DEFAULT_OVERLAP_RATIO)
         self.class_names = config.get("class_names", ["booth"])
         self.min_area_ratio = config.get("min_area_ratio", DATASET_CONSTANTS.DEFAULT_MIN_AREA_RATIO)
         self.keep_only_complete = config.get("keep_only_complete", True)
@@ -82,7 +82,7 @@ class Tiler:
         return TileCalculator.calculate_tiles(
             image_size=(h, w),
             tile_size=self.tile_size,
-            overlap=self.overlap
+            overlap_ratio=self.overlap
         )
 
     def _is_polygon_complete_in_tile(self, poly: Polygon, tile_box: box) -> bool:
@@ -298,7 +298,7 @@ def process_dataset(
     temp_dir: str = None,
     clean_temp: bool = True,
     tile_size: int = 640,
-    overlap: int = 200,
+    overlap_ratio: float = 0.3,  # 统一使用比例值
     split_ratio: float = 0.8,
     min_area_ratio: float = 0.85,
     merge_manual_datasets: bool = False,
@@ -326,7 +326,7 @@ def process_dataset(
         temp_dir: 临时输出目录（仅在 merge_manual_datasets=True 时使用）
         clean_temp: 是否清理临时目录（仅在 merge_manual_datasets=True 时使用）
         tile_size: 切片大小
-        overlap: 重叠区域大小
+        overlap_ratio: 重叠比例 0-1（统一使用比例值）
         split_ratio: 训练集比例
         min_area_ratio: 最小保留比例
         merge_manual_datasets: 是否合并手动标注数据集（批量模式时）
@@ -425,7 +425,7 @@ def process_dataset(
                 "json_path": str(json_path) if has_json else None,
                 "output_dir": str(output_dir),
                 "tile_size": tile_size,
-                "overlap": overlap,
+                "overlap": overlap_ratio,  # 使用比例值
                 "split_ratio": split_ratio,
                 "min_val_tiles": 3,
                 "class_names": ["booth"],
@@ -789,7 +789,7 @@ names:
 
 if __name__ == "__main__":
     # 模式1: 处理单个文件
-    process_dataset("D:\Study\github\YOLO\datasets/test/2025-畜博会.png", tile_size=1024, overlap=500,)
+    process_dataset("D:\Study\github\YOLO\datasets/test/2025-畜博会.png", tile_size=1024, overlap_ratio=0.3,)
     
 
     # 模式2: 批量处理文件夹
@@ -797,13 +797,13 @@ if __name__ == "__main__":
 
     # # 模式3: 批量处理 + 合并手动标注数据集
     # process_dataset(
-    #     input_source="annotations/",
+    #     input_source="annotations/红木.png,",
     #     merge_manual_datasets=True,
-    #     manual_datasets_dir="annotations/manual_booth_annotations,annotations/blurry,annotations/high_res,annotations/new_20260226,annotations/background",  # 支持多个目录（逗号分隔）
+    #     manual_datasets_dir="annotations/background,annotations/manual_booth_annotations,annotations/blurry,annotations/high_res,annotations/new_20260226",  # 支持多个目录（逗号分隔）
     #     final_output_dir=f"datasets/booth_{datetime.now().strftime('%Y%m%d_%H%M')}",
     #     clean_temp=True,
     #     tile_size=1024,
-    #     overlap=500,
-    #     max_background_ratio=0.3,  # 背景图最多占训练集的30%
+    #     overlap_ratio=0.3,
+    #     max_background_ratio=0.15,  # 背景图最多占训练集的30%
     #     min_background_per_source=2,  # 每个原始图片至少保留2个背景切片
     # )
