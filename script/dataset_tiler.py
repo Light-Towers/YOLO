@@ -788,22 +788,22 @@ names:
 
 
 if __name__ == "__main__":
-    # # 模式1: 处理单个文件
-    # process_dataset("D:\Study\github\YOLO\datasets/test/test11111/2025-畜博会.png", tile_size=1024, overlap=800,)
+    # 模式1: 处理单个文件
+    process_dataset("D:\Study\github\YOLO\datasets/test/2025-畜博会.png", tile_size=1024, overlap=500,)
     
 
     # 模式2: 批量处理文件夹
     # process_dataset("annotations/红木.png,")
 
-    # 模式3: 批量处理 + 合并手动标注数据集
-    process_dataset(
-        input_source="annotations/",
-        merge_manual_datasets=True,
-        manual_datasets_dir="annotations/manual_booth_annotations, annotations/mohu, annotations/new_20260226, annotations/background",  # 支持多个目录（逗号分隔）
-        final_output_dir=f"datasets/booth_{datetime.now().strftime('%Y%m%d_%H%M')}",
-        clean_temp=True,
-        tile_size=1024,
-        overlap=500,
-        max_background_ratio=0.3,  # 背景图最多占训练集的30%
-        min_background_per_source=2,  # 每个原始图片至少保留2个背景切片
-    )
+    # # 模式3: 批量处理 + 合并手动标注数据集
+    # process_dataset(
+    #     input_source="annotations/",
+    #     merge_manual_datasets=True,
+    #     manual_datasets_dir="annotations/manual_booth_annotations,annotations/blurry,annotations/high_res,annotations/new_20260226,annotations/background",  # 支持多个目录（逗号分隔）
+    #     final_output_dir=f"datasets/booth_{datetime.now().strftime('%Y%m%d_%H%M')}",
+    #     clean_temp=True,
+    #     tile_size=1024,
+    #     overlap=500,
+    #     max_background_ratio=0.3,  # 背景图最多占训练集的30%
+    #     min_background_per_source=2,  # 每个原始图片至少保留2个背景切片
+    # )
