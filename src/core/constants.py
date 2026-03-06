@@ -63,7 +63,7 @@ class DatasetConstants:
     DEFAULT_TRAIN_RATIO: float = 0.8
     DEFAULT_MIN_VAL_TILES: int = 2
     DEFAULT_TILE_SIZE: int = 640
-    DEFAULT_OVERLAP: int = 200
+    DEFAULT_OVERLAP_RATIO: float = 0.3  # 统一使用比例值
     DEFAULT_MIN_AREA_RATIO: float = 0.9
 
 
